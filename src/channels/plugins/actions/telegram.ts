@@ -1,4 +1,3 @@
-import type { ChannelMessageActionAdapter, ChannelMessageActionName } from "../types.js";
 import {
   createActionGate,
   readNumberParam,
@@ -10,6 +9,7 @@ import { handleTelegramAction } from "../../../agents/tools/telegram-actions.js"
 import { extractToolSend } from "../../../plugin-sdk/tool-send.js";
 import { listEnabledTelegramAccounts } from "../../../telegram/accounts.js";
 import { isTelegramInlineButtonsEnabled } from "../../../telegram/inline-buttons.js";
+import type { ChannelMessageActionAdapter, ChannelMessageActionName } from "../types.js";
 
 const providerId = "telegram";
 

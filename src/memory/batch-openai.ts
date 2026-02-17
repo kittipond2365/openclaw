@@ -1,8 +1,8 @@
-import type { OpenAiEmbeddingClient } from "./embeddings-openai.js";
 import { extractBatchErrorMessage, formatUnavailableBatchError } from "./batch-error-utils.js";
 import { postJsonWithRetry } from "./batch-http.js";
 import { applyEmbeddingBatchOutputLine } from "./batch-output.js";
 import { buildBatchHeaders, normalizeBatchBaseUrl, splitBatchRequests } from "./batch-utils.js";
+import type { OpenAiEmbeddingClient } from "./embeddings-openai.js";
 import { hashText, runWithConcurrency } from "./internal.js";
 
 export type OpenAiBatchRequest = {

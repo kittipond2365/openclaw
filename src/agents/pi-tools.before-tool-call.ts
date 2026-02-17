@@ -1,9 +1,9 @@
 import type { SessionState } from "../logging/diagnostic-session-state.js";
-import type { AnyAgentTool } from "./tools/common.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
 import { isPlainObject } from "../utils.js";
 import { normalizeToolName } from "./tool-policy.js";
+import type { AnyAgentTool } from "./tools/common.js";
 
 type HookContext = {
   agentId?: string;

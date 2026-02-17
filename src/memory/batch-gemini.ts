@@ -1,7 +1,7 @@
-import type { GeminiEmbeddingClient } from "./embeddings-gemini.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { buildBatchHeaders, normalizeBatchBaseUrl, splitBatchRequests } from "./batch-utils.js";
+import type { GeminiEmbeddingClient } from "./embeddings-gemini.js";
 import { hashText, runWithConcurrency } from "./internal.js";
 
 export type GeminiBatchRequest = {
