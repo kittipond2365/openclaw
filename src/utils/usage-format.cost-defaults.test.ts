@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import type { OpenClawConfig } from "../config/config.js";
 import { resolveModelCostConfig } from "./usage-format.js";
 
 describe("resolveModelCostConfig", () => {
@@ -37,7 +38,7 @@ describe("resolveModelCostConfig", () => {
     const cost = resolveModelCostConfig({
       provider: "openai",
       model: "gpt-4o",
-      config: config as any,
+      config: config as unknown as OpenClawConfig,
     });
     expect(cost?.input).toBe(100);
   });
