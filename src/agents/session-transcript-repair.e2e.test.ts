@@ -277,23 +277,30 @@ describe("repairMalformedToolEntries", () => {
       {
         role: "assistant",
         content: [{ type: "toolCall", id: "call_valid", name: "read", arguments: {} }],
-      },
+      } as AgentMessage,
       {
         role: "toolResult",
         toolCallId: "   ",
         toolName: "read",
         content: [{ type: "text", text: "invalid blank id" }],
+        isError: false,
+        timestamp: Date.now(),
       },
       {
         role: "toolResult",
+        toolCallId: "",
         toolName: "read",
         content: [{ type: "text", text: "missing id" }],
-      } as unknown as AgentMessage,
+        isError: false,
+        timestamp: Date.now(),
+      },
       {
         role: "toolResult",
         toolCallId: "call_valid",
         toolName: "read",
         content: [{ type: "text", text: "ok" }],
+        isError: false,
+        timestamp: Date.now(),
       },
     ];
 
@@ -308,10 +315,10 @@ describe("repairMalformedToolEntries", () => {
       {
         role: "assistant",
         content: [
-          { type: "tool_call", id: "call_alias_bad", name: "   ", arguments: {} },
-          { type: "function_call", id: "call_alias_good", name: "exec", arguments: {} },
+          { type: "toolCall", id: "call_alias_bad", name: "   ", arguments: {} },
+          { type: "toolCall", id: "call_alias_good", name: "exec", arguments: {} },
         ],
-      },
+      } as AgentMessage,
     ];
 
     const report = repairMalformedToolEntries(input);
@@ -320,7 +327,7 @@ describe("repairMalformedToolEntries", () => {
     const toolBlocks = Array.isArray(assistant.content)
       ? assistant.content.filter((block) => {
           const type = (block as { type?: unknown }).type;
-          return typeof type === "string" && ["tool_call", "function_call"].includes(type);
+          return typeof type === "string" && type === "toolCall";
         })
       : [];
     expect(toolBlocks).toHaveLength(1);
@@ -333,12 +340,14 @@ describe("repairMalformedToolEntries", () => {
       {
         role: "assistant",
         content: [{ type: "toolCall", id: canonicalId, name: "noop", arguments: {} }],
-      },
+      } as AgentMessage,
       {
         role: "toolResult",
         toolCallId: canonicalId,
         toolName: "noop",
         content: [{ type: "text", text: "ok" }],
+        isError: false,
+        timestamp: Date.now(),
       },
     ];
 
