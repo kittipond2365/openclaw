@@ -232,15 +232,28 @@ function formatProviderButtonLabel(provider: string): string {
   return `${provider.slice(0, DISCORD_PROVIDER_BUTTON_LABEL_MAX_CHARS - 1)}…`;
 }
 
-function chunkArray<T>(items: T[], chunkSize: number): T[][] {
-  if (chunkSize <= 0) {
-    return [items];
+function chunkProvidersForRows(
+  items: DiscordModelPickerProviderItem[],
+): DiscordModelPickerProviderItem[][] {
+  if (items.length === 0) {
+    return [];
   }
-  const chunks: T[][] = [];
-  for (let index = 0; index < items.length; index += chunkSize) {
-    chunks.push(items.slice(index, index + chunkSize));
+
+  const rowCount = Math.max(1, Math.ceil(items.length / DISCORD_COMPONENT_MAX_BUTTONS_PER_ROW));
+  const minPerRow = Math.floor(items.length / rowCount);
+  const rowsWithExtraItem = items.length % rowCount;
+
+  const counts = Array.from({ length: rowCount }, (_, index) =>
+    index < rowCount - rowsWithExtraItem ? minPerRow : minPerRow + 1,
+  );
+
+  const rows: DiscordModelPickerProviderItem[][] = [];
+  let cursor = 0;
+  for (const count of counts) {
+    rows.push(items.slice(cursor, cursor + count));
+    cursor += count;
   }
-  return chunks;
+  return rows;
 }
 
 function createModelPickerButton(params: DiscordModelPickerButtonOptions): Button {
@@ -306,7 +319,7 @@ function buildProviderRows(params: {
   page: DiscordModelPickerPage<DiscordModelPickerProviderItem>;
   currentProvider?: string;
 }): Row<Button>[] {
-  const rows = chunkArray(params.page.items, DISCORD_COMPONENT_MAX_BUTTONS_PER_ROW).map(
+  const rows = chunkProvidersForRows(params.page.items).map(
     (providers) =>
       new Row(
         providers.map((provider) => {

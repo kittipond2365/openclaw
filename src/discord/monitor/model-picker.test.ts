@@ -282,6 +282,15 @@ describe("Discord model picker rendering", () => {
     const rows = extractContainerRows(payload.components);
     expect(rows.length).toBeGreaterThan(0);
 
+    const rowProviderCounts = rows.map(
+      (row) =>
+        (row.components ?? []).filter((component) => {
+          const parsed = parseDiscordModelPickerCustomId(component.custom_id ?? "");
+          return parsed?.action === "provider";
+        }).length,
+    );
+    expect(rowProviderCounts).toEqual([4, 5, 5, 5, 5]);
+
     const allButtons = rows.flatMap((row) => row.components ?? []);
     const providerButtons = allButtons.filter((component) => {
       const parsed = parseDiscordModelPickerCustomId(component.custom_id ?? "");
