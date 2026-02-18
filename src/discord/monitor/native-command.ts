@@ -372,6 +372,48 @@ function buildDiscordModelPickerSelectionCommand(params: {
   };
 }
 
+function listDiscordModelPickerProviderModels(
+  data: Awaited<ReturnType<typeof loadDiscordModelPickerData>>,
+  provider: string,
+): string[] {
+  const modelSet = data.byProvider.get(provider);
+  if (!modelSet) {
+    return [];
+  }
+  return [...modelSet].toSorted();
+}
+
+function resolveDiscordModelPickerModelIndex(params: {
+  data: Awaited<ReturnType<typeof loadDiscordModelPickerData>>;
+  provider: string;
+  model: string;
+}): number | null {
+  const models = listDiscordModelPickerProviderModels(params.data, params.provider);
+  if (!models.length) {
+    return null;
+  }
+  const index = models.indexOf(params.model);
+  if (index < 0) {
+    return null;
+  }
+  return index + 1;
+}
+
+function resolveDiscordModelPickerModelByIndex(params: {
+  data: Awaited<ReturnType<typeof loadDiscordModelPickerData>>;
+  provider: string;
+  modelIndex?: number;
+}): string | null {
+  if (!params.modelIndex || params.modelIndex < 1) {
+    return null;
+  }
+  const models = listDiscordModelPickerProviderModels(params.data, params.provider);
+  if (!models.length) {
+    return null;
+  }
+  return models[params.modelIndex - 1] ?? null;
+}
+
 async function handleDiscordModelPickerInteraction(
   interaction: ButtonInteraction | StringSelectMenuInteraction,
   data: ComponentData,
@@ -399,17 +441,28 @@ async function handleDiscordModelPickerInteraction(
     pickerData.resolvedDefault.model,
   );
 
-  if (parsed.action === "model" || parsed.action === "reset") {
-    const selectedModel =
-      parsed.action === "reset"
-        ? pickerData.resolvedDefault.model
-        : resolveModelPickerSelectionValue(interaction);
-    const provider =
-      parsed.action === "reset" ? pickerData.resolvedDefault.provider : parsed.provider;
+  if (parsed.action === "model") {
+    const selectedModel = resolveModelPickerSelectionValue(interaction);
+    const provider = parsed.provider;
     if (!provider || !selectedModel) {
       await safeDiscordInteractionCall("model picker update", () =>
         interaction.update({
-          content: "Sorry, I couldn't resolve that model selection.",
+          content: "Sorry, I couldn't read that model selection.",
+          components: [],
+        }),
+      );
+      return;
+    }
+
+    const modelIndex = resolveDiscordModelPickerModelIndex({
+      data: pickerData,
+      provider,
+      model: selectedModel,
+    });
+    if (!modelIndex) {
+      await safeDiscordInteractionCall("model picker update", () =>
+        interaction.update({
+          content: "Sorry, that model isn't available anymore.",
           components: [],
         }),
       );
@@ -424,24 +477,58 @@ async function handleDiscordModelPickerInteraction(
       provider,
       page: parsed.page,
       providerPage: 1,
-      currentModel: modelRef,
+      currentModel: defaultModelRef,
+      pendingModel: modelRef,
+      pendingModelIndex: modelIndex,
     });
 
-    const updated = await safeDiscordInteractionCall("model picker update", () =>
+    await safeDiscordInteractionCall("model picker update", () =>
       interaction.update(toDiscordModelPickerMessagePayload(rendered)),
     );
-    if (!updated) {
+    return;
+  }
+
+  if (parsed.action === "submit" || parsed.action === "reset") {
+    const provider =
+      parsed.action === "reset" ? pickerData.resolvedDefault.provider : parsed.provider;
+    const selectedModel =
+      parsed.action === "reset"
+        ? pickerData.resolvedDefault.model
+        : resolveDiscordModelPickerModelByIndex({
+            data: pickerData,
+            provider: provider ?? "",
+            modelIndex: parsed.modelIndex,
+          });
+
+    if (!provider || !selectedModel) {
+      await safeDiscordInteractionCall("model picker update", () =>
+        interaction.update({
+          content: "That selection expired. Please choose a model again.",
+          components: [],
+        }),
+      );
       return;
     }
 
+    const modelRef = `${provider}/${selectedModel}`;
     const selectionCommand = buildDiscordModelPickerSelectionCommand({ modelRef });
     if (!selectionCommand) {
-      await safeDiscordInteractionCall("model picker follow-up", () =>
-        interaction.followUp({
+      await safeDiscordInteractionCall("model picker update", () =>
+        interaction.update({
           content: "Sorry, /model is unavailable right now.",
-          ephemeral: true,
+          components: [],
         }),
       );
+      return;
+    }
+
+    const updated = await safeDiscordInteractionCall("model picker update", () =>
+      interaction.update({
+        content: `✅ Model set to ${modelRef}.`,
+        components: [],
+      }),
+    );
+    if (!updated) {
       return;
     }
 

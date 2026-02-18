@@ -37,7 +37,7 @@ export const DISCORD_MODEL_PICKER_MODEL_PAGE_SIZE = DISCORD_COMPONENT_MAX_SELECT
 const DISCORD_PROVIDER_BUTTON_LABEL_MAX_CHARS = 18;
 
 const COMMAND_CONTEXTS = ["model", "models"] as const;
-const PICKER_ACTIONS = ["open", "provider", "model", "nav", "back", "reset"] as const;
+const PICKER_ACTIONS = ["open", "provider", "model", "submit", "nav", "back", "reset"] as const;
 const PICKER_VIEWS = ["providers", "models"] as const;
 
 export type DiscordModelPickerCommandContext = (typeof COMMAND_CONTEXTS)[number];
@@ -51,6 +51,7 @@ export type DiscordModelPickerState = {
   userId: string;
   provider?: string;
   page: number;
+  modelIndex?: number;
 };
 
 export type DiscordModelPickerProviderItem = {
@@ -119,6 +120,8 @@ export type DiscordModelPickerModelViewParams = {
   page?: number;
   providerPage?: number;
   currentModel?: string;
+  pendingModel?: string;
+  pendingModelIndex?: number;
   layout?: DiscordModelPickerLayout;
 };
 
@@ -165,6 +168,17 @@ function parseRawPage(value: unknown): number {
     }
   }
   return 1;
+}
+
+function parseRawModelIndex(value: unknown): number | undefined {
+  if (typeof value !== "string" && typeof value !== "number") {
+    return undefined;
+  }
+  const parsed = Number.parseInt(String(value), 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return undefined;
+  }
+  return Math.floor(parsed);
 }
 
 function coerceString(value: unknown): string {
@@ -391,14 +405,17 @@ function buildModelRows(params: {
   providerPage: number;
   modelPage: DiscordModelPickerModelPage;
   currentModel?: string;
+  pendingModel?: string;
+  pendingModelIndex?: number;
 }): DiscordModelPickerRow[] {
   const parsedCurrentModel = parseCurrentModelRef(params.currentModel);
+  const parsedPendingModel = parseCurrentModelRef(params.pendingModel);
+  const selectedModelRef = parsedPendingModel ?? parsedCurrentModel;
   const options: APISelectMenuOption[] = params.modelPage.items.map((model) => ({
     label: model,
     value: model,
-    default: parsedCurrentModel
-      ? parsedCurrentModel.provider === params.modelPage.provider &&
-        parsedCurrentModel.model === model
+    default: selectedModelRef
+      ? selectedModelRef.provider === params.modelPage.provider && selectedModelRef.model === model
       : false,
   }));
 
@@ -422,6 +439,12 @@ function buildModelRows(params: {
     Boolean(parsedCurrentModel) &&
     parsedCurrentModel?.provider === resolvedDefault.provider &&
     parsedCurrentModel?.model === resolvedDefault.model;
+
+  const hasPendingSelection =
+    Boolean(parsedPendingModel) &&
+    parsedPendingModel?.provider === params.modelPage.provider &&
+    typeof params.pendingModelIndex === "number" &&
+    params.pendingModelIndex > 0;
 
   const navRow = new Row([
     createModelPickerButton({
@@ -447,18 +470,6 @@ function buildModelRows(params: {
       }),
     }),
     createModelPickerButton({
-      label: `Page ${params.modelPage.page}/${params.modelPage.totalPages}`,
-      disabled: true,
-      customId: buildDiscordModelPickerCustomId({
-        command: params.command,
-        action: "open",
-        view: "models",
-        provider: params.modelPage.provider,
-        page: params.modelPage.page,
-        userId: params.userId,
-      }),
-    }),
-    createModelPickerButton({
       label: "Next ▶",
       disabled: !params.modelPage.hasNext,
       customId: buildDiscordModelPickerCustomId({
@@ -467,6 +478,20 @@ function buildModelRows(params: {
         view: "models",
         provider: params.modelPage.provider,
         page: params.modelPage.page + 1,
+        userId: params.userId,
+      }),
+    }),
+    createModelPickerButton({
+      label: "Submit",
+      style: ButtonStyle.Primary,
+      disabled: !hasPendingSelection,
+      customId: buildDiscordModelPickerCustomId({
+        command: params.command,
+        action: "submit",
+        view: "models",
+        provider: params.modelPage.provider,
+        page: params.modelPage.page,
+        modelIndex: params.pendingModelIndex,
         userId: params.userId,
       }),
     }),
@@ -503,6 +528,7 @@ export function buildDiscordModelPickerCustomId(params: {
   userId: string;
   provider?: string;
   page?: number;
+  modelIndex?: number;
 }): string {
   const userId = params.userId.trim();
   if (!userId) {
@@ -511,6 +537,10 @@ export function buildDiscordModelPickerCustomId(params: {
 
   const page = normalizePage(params.page);
   const normalizedProvider = params.provider ? normalizeProviderId(params.provider) : undefined;
+  const modelIndex =
+    typeof params.modelIndex === "number" && Number.isFinite(params.modelIndex)
+      ? Math.max(1, Math.floor(params.modelIndex))
+      : undefined;
 
   const parts = [
     `${DISCORD_MODEL_PICKER_CUSTOM_ID_KEY}:cmd=${encodeCustomIdValue(params.command)}`,
@@ -521,6 +551,9 @@ export function buildDiscordModelPickerCustomId(params: {
   ];
   if (normalizedProvider) {
     parts.push(`p=${encodeCustomIdValue(normalizedProvider)}`);
+  }
+  if (modelIndex) {
+    parts.push(`mi=${String(modelIndex)}`);
   }
 
   const customId = parts.join(";");
@@ -568,6 +601,7 @@ export function parseDiscordModelPickerData(data: ComponentData): DiscordModelPi
   const userId = decodeCustomIdValue(coerceString(data.u));
   const providerRaw = decodeCustomIdValue(coerceString(data.p));
   const page = parseRawPage(data.pg);
+  const modelIndex = parseRawModelIndex(data.mi);
 
   if (!isValidCommandContext(command) || !isValidPickerAction(action) || !isValidPickerView(view)) {
     return null;
@@ -587,6 +621,7 @@ export function parseDiscordModelPickerData(data: ComponentData): DiscordModelPi
     userId: trimmedUserId,
     provider,
     page,
+    ...(typeof modelIndex === "number" ? { modelIndex } : {}),
   };
 }
 
@@ -720,13 +755,23 @@ export function renderDiscordModelPickerModelsView(
     providerPage,
     modelPage,
     currentModel: params.currentModel,
+    pendingModel: params.pendingModel,
+    pendingModelIndex: params.pendingModelIndex,
   });
 
   const defaultModel = `${params.data.resolvedDefault.provider}/${params.data.resolvedDefault.model}`;
+  const pendingLine = params.pendingModel
+    ? `Selected: ${params.pendingModel} (press Submit)`
+    : "Select a model, then press Submit.";
+
   return buildRenderedShell({
     layout: params.layout ?? "v2",
     title: `Model Picker — ${modelPage.provider}`,
-    detailLines: [formatCurrentModelLine(params.currentModel), `Default: ${defaultModel}`],
+    detailLines: [
+      formatCurrentModelLine(params.currentModel),
+      `Default: ${defaultModel}`,
+      pendingLine,
+    ],
     rows,
     footer: `Models page ${modelPage.page}/${modelPage.totalPages} (${modelPage.totalItems} total)`,
   });

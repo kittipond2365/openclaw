@@ -132,7 +132,7 @@ describe("Discord model picker interactions", () => {
     expect(loadSpy).not.toHaveBeenCalled();
   });
 
-  it("routes selected model through existing /model command pipeline", async () => {
+  it("requires submit click before routing selected model through /model pipeline", async () => {
     const context = createModelPickerContext();
     const pickerData = createModelsProviderData({
       openai: ["gpt-4.1", "gpt-4o"],
@@ -160,12 +160,12 @@ describe("Discord model picker interactions", () => {
       .mockResolvedValue({} as never);
 
     const select = createDiscordModelPickerFallbackSelect(context);
-    const interaction = createInteraction({
+    const selectInteraction = createInteraction({
       userId: "owner",
       values: ["gpt-4o"],
     });
 
-    const data: PickerSelectData = {
+    const selectData: PickerSelectData = {
       cmd: "model",
       act: "model",
       view: "models",
@@ -174,9 +174,26 @@ describe("Discord model picker interactions", () => {
       pg: "1",
     };
 
-    await select.run(interaction as unknown as PickerSelectInteraction, data);
+    await select.run(selectInteraction as unknown as PickerSelectInteraction, selectData);
 
-    expect(interaction.update).toHaveBeenCalledTimes(1);
+    expect(selectInteraction.update).toHaveBeenCalledTimes(1);
+    expect(dispatchSpy).not.toHaveBeenCalled();
+
+    const button = createDiscordModelPickerFallbackButton(context);
+    const submitInteraction = createInteraction({ userId: "owner" });
+    const submitData: PickerButtonData = {
+      cmd: "model",
+      act: "submit",
+      view: "models",
+      u: "owner",
+      p: "openai",
+      pg: "1",
+      mi: "2",
+    };
+
+    await button.run(submitInteraction as unknown as PickerButtonInteraction, submitData);
+
+    expect(submitInteraction.update).toHaveBeenCalledTimes(1);
     expect(dispatchSpy).toHaveBeenCalledTimes(1);
 
     const dispatchCall = dispatchSpy.mock.calls[0]?.[0] as {

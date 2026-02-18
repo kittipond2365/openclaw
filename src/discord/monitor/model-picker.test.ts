@@ -111,6 +111,28 @@ describe("Discord model picker custom_id", () => {
     });
   });
 
+  it("parses optional submit model index", () => {
+    const parsed = parseDiscordModelPickerData({
+      cmd: "models",
+      act: "submit",
+      view: "models",
+      u: "42",
+      p: "openai",
+      pg: "1",
+      mi: "7",
+    });
+
+    expect(parsed).toEqual({
+      command: "models",
+      action: "submit",
+      view: "models",
+      userId: "42",
+      provider: "openai",
+      page: 1,
+      modelIndex: 7,
+    });
+  });
+
   it("rejects invalid command/action/view values", () => {
     expect(
       parseDiscordModelPickerData({
@@ -354,7 +376,7 @@ describe("Discord model picker rendering", () => {
     expect(payload.components?.[0]?.type).toBe(ComponentType.ActionRow);
   });
 
-  it("renders model view with select menu and back/prev/next/reset navigation", () => {
+  it("renders model view with select menu and explicit submit button", () => {
     const data = createModelsProviderData({
       openai: ["gpt-4.1", "gpt-4o", "o3"],
       anthropic: ["claude-sonnet-4-5"],
@@ -368,6 +390,8 @@ describe("Discord model picker rendering", () => {
       page: 1,
       providerPage: 2,
       currentModel: "openai/gpt-4o",
+      pendingModel: "openai/o3",
+      pendingModelIndex: 3,
     });
 
     const payload = serializePayload(toDiscordModelPickerMessagePayload(rendered)) as {
@@ -382,7 +406,7 @@ describe("Discord model picker rendering", () => {
     );
     expect(selectComponent).toBeTruthy();
     expect(selectComponent?.options?.length).toBe(3);
-    expect(selectComponent?.options?.some((option) => option.default)).toBe(true);
+    expect(selectComponent?.options?.find((option) => option.value === "o3")?.default).toBe(true);
 
     const parsedSelectState = parseDiscordModelPickerCustomId(selectComponent?.custom_id ?? "");
     expect(parsedSelectState?.action).toBe("model");
@@ -399,6 +423,11 @@ describe("Discord model picker rendering", () => {
       page: 2,
       provider: undefined,
     });
+
+    const submitState = parseDiscordModelPickerCustomId(navButtons[3]?.custom_id ?? "");
+    expect(submitState?.action).toBe("submit");
+    expect(submitState?.provider).toBe("openai");
+    expect(submitState?.modelIndex).toBe(3);
 
     const resetState = parseDiscordModelPickerCustomId(navButtons[4]?.custom_id ?? "");
     expect(resetState?.action).toBe("reset");
