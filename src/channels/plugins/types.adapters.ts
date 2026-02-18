@@ -80,6 +80,7 @@ export type ChannelOutboundContext = {
   to: string;
   text: string;
   mediaUrl?: string;
+  mediaLocalRoots?: readonly string[];
   gifPlayback?: boolean;
   replyToId?: string | null;
   threadId?: string | number | null;
