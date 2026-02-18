@@ -8,6 +8,7 @@ import {
   DISCORD_CUSTOM_ID_MAX_CHARS,
   DISCORD_MODEL_PICKER_MODEL_PAGE_SIZE,
   DISCORD_MODEL_PICKER_PROVIDER_PAGE_SIZE,
+  DISCORD_MODEL_PICKER_PROVIDER_SINGLE_PAGE_MAX,
   buildDiscordModelPickerCustomId,
   getDiscordModelPickerModelPage,
   getDiscordModelPickerProviderPage,
@@ -153,9 +154,25 @@ describe("Discord model picker custom_id", () => {
 });
 
 describe("provider paging", () => {
-  it("clamps and paginates providers within Discord row/button limits", () => {
+  it("keeps providers on a single page when count fits Discord button rows", () => {
     const entries: Record<string, string[]> = {};
-    for (let i = 1; i <= DISCORD_MODEL_PICKER_PROVIDER_PAGE_SIZE + 3; i += 1) {
+    for (let i = 1; i <= DISCORD_MODEL_PICKER_PROVIDER_SINGLE_PAGE_MAX - 2; i += 1) {
+      entries[`provider-${String(i).padStart(2, "0")}`] = [`model-${i}`];
+    }
+    const data = createModelsProviderData(entries);
+
+    const page = getDiscordModelPickerProviderPage({ data, page: 1 });
+
+    expect(page.items).toHaveLength(DISCORD_MODEL_PICKER_PROVIDER_SINGLE_PAGE_MAX - 2);
+    expect(page.totalPages).toBe(1);
+    expect(page.pageSize).toBe(DISCORD_MODEL_PICKER_PROVIDER_SINGLE_PAGE_MAX);
+    expect(page.hasPrev).toBe(false);
+    expect(page.hasNext).toBe(false);
+  });
+
+  it("paginates providers when count exceeds one-page Discord button limits", () => {
+    const entries: Record<string, string[]> = {};
+    for (let i = 1; i <= DISCORD_MODEL_PICKER_PROVIDER_SINGLE_PAGE_MAX + 3; i += 1) {
       entries[`provider-${String(i).padStart(2, "0")}`] = [`model-${i}`];
     }
     const data = createModelsProviderData(entries);
@@ -168,20 +185,35 @@ describe("provider paging", () => {
     expect(page1.hasNext).toBe(true);
 
     expect(lastPage.page).toBe(2);
-    expect(lastPage.items).toHaveLength(3);
+    expect(lastPage.items).toHaveLength(8);
     expect(lastPage.hasPrev).toBe(true);
     expect(lastPage.hasNext).toBe(false);
   });
 
   it("caps custom provider page size at Discord-safe max", () => {
-    const data = createModelsProviderData({
+    const compactData = createModelsProviderData({
       anthropic: ["claude-sonnet-4-5"],
       openai: ["gpt-4o"],
       google: ["gemini-3-pro"],
     });
+    const compactPage = getDiscordModelPickerProviderPage({
+      data: compactData,
+      page: 1,
+      pageSize: 999,
+    });
+    expect(compactPage.pageSize).toBe(DISCORD_MODEL_PICKER_PROVIDER_SINGLE_PAGE_MAX);
 
-    const page = getDiscordModelPickerProviderPage({ data, page: 1, pageSize: 999 });
-    expect(page.pageSize).toBe(DISCORD_MODEL_PICKER_PROVIDER_PAGE_SIZE);
+    const pagedEntries: Record<string, string[]> = {};
+    for (let i = 1; i <= DISCORD_MODEL_PICKER_PROVIDER_SINGLE_PAGE_MAX + 1; i += 1) {
+      pagedEntries[`provider-${String(i).padStart(2, "0")}`] = [`model-${i}`];
+    }
+    const pagedData = createModelsProviderData(pagedEntries);
+    const pagedPage = getDiscordModelPickerProviderPage({
+      data: pagedData,
+      page: 1,
+      pageSize: 999,
+    });
+    expect(pagedPage.pageSize).toBe(DISCORD_MODEL_PICKER_PROVIDER_PAGE_SIZE);
   });
 });
 
@@ -223,18 +255,20 @@ describe("model paging", () => {
 });
 
 describe("Discord model picker rendering", () => {
-  it("renders provider view with v2 container + provider/nav buttons", () => {
-    const data = createModelsProviderData({
-      anthropic: ["claude-sonnet-4-5"],
-      openai: ["gpt-4o", "gpt-4.1"],
-      google: ["gemini-3-pro"],
-    });
+  it("renders provider view on one page when provider count is <= 25", () => {
+    const entries: Record<string, string[]> = {};
+    for (let i = 1; i <= 22; i += 1) {
+      entries[`provider-${String(i).padStart(2, "0")}`] = [`model-${i}`];
+    }
+    entries["azure-openai-responses"] = ["gpt-4.1"];
+    entries["vercel-ai-gateway"] = ["gpt-4o-mini"];
+    const data = createModelsProviderData(entries);
 
     const rendered = renderDiscordModelPickerProvidersView({
       command: "models",
       userId: "42",
       data,
-      currentModel: "openai/gpt-4o",
+      currentModel: "provider-01/model-1",
     });
 
     const payload = serializePayload(toDiscordModelPickerMessagePayload(rendered)) as {
@@ -248,14 +282,45 @@ describe("Discord model picker rendering", () => {
     const rows = extractContainerRows(payload.components);
     expect(rows.length).toBeGreaterThan(0);
 
-    const firstButton = rows[0]?.components?.[0];
-    expect(firstButton?.type).toBe(ComponentType.Button);
-    const parsedButtonState = parseDiscordModelPickerCustomId(firstButton?.custom_id ?? "");
-    expect(parsedButtonState?.action).toBe("provider");
-    expect(parsedButtonState?.view).toBe("models");
+    const allButtons = rows.flatMap((row) => row.components ?? []);
+    const providerButtons = allButtons.filter((component) => {
+      const parsed = parseDiscordModelPickerCustomId(component.custom_id ?? "");
+      return parsed?.action === "provider";
+    });
+    expect(providerButtons).toHaveLength(Object.keys(entries).length);
+    expect(
+      allButtons.some((component) => {
+        const parsed = parseDiscordModelPickerCustomId(component.custom_id ?? "");
+        return parsed?.action === "nav";
+      }),
+    ).toBe(false);
+  });
 
-    const navButtons = rows.at(-1)?.components ?? [];
+  it("renders provider navigation controls when provider count exceeds one page", () => {
+    const entries: Record<string, string[]> = {};
+    for (let i = 1; i <= DISCORD_MODEL_PICKER_PROVIDER_SINGLE_PAGE_MAX + 4; i += 1) {
+      entries[`provider-${String(i).padStart(2, "0")}`] = [`model-${i}`];
+    }
+    const data = createModelsProviderData(entries);
+
+    const rendered = renderDiscordModelPickerProvidersView({
+      command: "models",
+      userId: "42",
+      data,
+      currentModel: "provider-01/model-1",
+    });
+
+    const payload = serializePayload(toDiscordModelPickerMessagePayload(rendered)) as {
+      components?: SerializedComponent[];
+    };
+
+    const rows = extractContainerRows(payload.components);
+    expect(rows.length).toBeGreaterThan(0);
+
+    const navRow = rows.at(-1);
+    const navButtons = navRow?.components ?? [];
     expect(navButtons).toHaveLength(3);
+
     const parsedNavState = parseDiscordModelPickerCustomId(navButtons[2]?.custom_id ?? "");
     expect(parsedNavState?.action).toBe("nav");
     expect(parsedNavState?.view).toBe("providers");
