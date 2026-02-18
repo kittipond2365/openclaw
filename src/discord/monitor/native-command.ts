@@ -604,7 +604,7 @@ export function createDiscordCommandArgFallbackButton(params: DiscordCommandArgC
 
 class DiscordModelPickerFallbackButton extends Button {
   label = DISCORD_MODEL_PICKER_CUSTOM_ID_KEY;
-  customId = `${DISCORD_MODEL_PICKER_CUSTOM_ID_KEY}:seed=1`;
+  customId = `${DISCORD_MODEL_PICKER_CUSTOM_ID_KEY}:seed=btn`;
   private ctx: DiscordModelPickerContext;
 
   constructor(ctx: DiscordModelPickerContext) {
@@ -618,7 +618,7 @@ class DiscordModelPickerFallbackButton extends Button {
 }
 
 class DiscordModelPickerFallbackSelect extends StringSelectMenu {
-  customId = `${DISCORD_MODEL_PICKER_CUSTOM_ID_KEY}:seed=1`;
+  customId = `${DISCORD_MODEL_PICKER_CUSTOM_ID_KEY}:seed=sel`;
   options = [];
   private ctx: DiscordModelPickerContext;
 

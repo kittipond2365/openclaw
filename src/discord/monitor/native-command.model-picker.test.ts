@@ -102,6 +102,15 @@ describe("Discord model picker interactions", () => {
     vi.restoreAllMocks();
   });
 
+  it("registers distinct fallback ids for button and select handlers", () => {
+    const context = createModelPickerContext();
+    const button = createDiscordModelPickerFallbackButton(context);
+    const select = createDiscordModelPickerFallbackSelect(context);
+
+    expect(button.customId).not.toBe(select.customId);
+    expect(button.customId.split(":")[0]).toBe(select.customId.split(":")[0]);
+  });
+
   it("ignores interactions from users other than the picker owner", async () => {
     const context = createModelPickerContext();
     const loadSpy = vi.spyOn(modelPickerModule, "loadDiscordModelPickerData");
