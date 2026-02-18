@@ -1,0 +1,179 @@
+import { ChannelType } from "discord-api-types/v10";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type {
+  ChatCommandDefinition,
+  CommandArgsParsing,
+} from "../../auto-reply/commands-registry.types.js";
+import type { ModelsProviderData } from "../../auto-reply/reply/commands-models.js";
+import type { OpenClawConfig } from "../../config/config.js";
+import * as commandRegistryModule from "../../auto-reply/commands-registry.js";
+import * as dispatcherModule from "../../auto-reply/reply/provider-dispatcher.js";
+import * as modelPickerModule from "./model-picker.js";
+import {
+  createDiscordModelPickerFallbackButton,
+  createDiscordModelPickerFallbackSelect,
+} from "./native-command.js";
+
+function createModelsProviderData(entries: Record<string, string[]>): ModelsProviderData {
+  const byProvider = new Map<string, Set<string>>();
+  for (const [provider, models] of Object.entries(entries)) {
+    byProvider.set(provider, new Set(models));
+  }
+  const providers = Object.keys(entries).toSorted();
+  return {
+    byProvider,
+    providers,
+    resolvedDefault: {
+      provider: providers[0] ?? "openai",
+      model: entries[providers[0] ?? "openai"]?.[0] ?? "gpt-4o",
+    },
+  };
+}
+
+type ModelPickerContext = Parameters<typeof createDiscordModelPickerFallbackButton>[0];
+type PickerButton = ReturnType<typeof createDiscordModelPickerFallbackButton>;
+type PickerSelect = ReturnType<typeof createDiscordModelPickerFallbackSelect>;
+type PickerButtonInteraction = Parameters<PickerButton["run"]>[0];
+type PickerButtonData = Parameters<PickerButton["run"]>[1];
+type PickerSelectInteraction = Parameters<PickerSelect["run"]>[0];
+type PickerSelectData = Parameters<PickerSelect["run"]>[1];
+
+type MockInteraction = {
+  user: { id: string; username: string; globalName: string };
+  channel: { type: ChannelType; id: string };
+  guild: null;
+  rawData: { id: string; member: { roles: string[] } };
+  values?: string[];
+  reply: ReturnType<typeof vi.fn>;
+  followUp: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn>;
+  acknowledge: ReturnType<typeof vi.fn>;
+  client: object;
+};
+
+function createModelPickerContext(): ModelPickerContext {
+  const cfg = {
+    channels: {
+      discord: {
+        dm: {
+          enabled: true,
+          policy: "open",
+        },
+      },
+    },
+  } as unknown as OpenClawConfig;
+
+  return {
+    cfg,
+    discordConfig: cfg.channels?.discord ?? {},
+    accountId: "default",
+    sessionPrefix: "discord:slash",
+  };
+}
+
+function createInteraction(params?: { userId?: string; values?: string[] }): MockInteraction {
+  const userId = params?.userId ?? "owner";
+  return {
+    user: {
+      id: userId,
+      username: "tester",
+      globalName: "Tester",
+    },
+    channel: {
+      type: ChannelType.DM,
+      id: "dm-1",
+    },
+    guild: null,
+    rawData: {
+      id: "interaction-1",
+      member: { roles: [] },
+    },
+    values: params?.values,
+    reply: vi.fn().mockResolvedValue({ ok: true }),
+    followUp: vi.fn().mockResolvedValue({ ok: true }),
+    update: vi.fn().mockResolvedValue({ ok: true }),
+    acknowledge: vi.fn().mockResolvedValue({ ok: true }),
+    client: {},
+  };
+}
+
+describe("Discord model picker interactions", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("ignores interactions from users other than the picker owner", async () => {
+    const context = createModelPickerContext();
+    const loadSpy = vi.spyOn(modelPickerModule, "loadDiscordModelPickerData");
+    const button = createDiscordModelPickerFallbackButton(context);
+    const interaction = createInteraction({ userId: "intruder" });
+
+    const data: PickerButtonData = {
+      cmd: "model",
+      act: "nav",
+      view: "providers",
+      u: "owner",
+      pg: "1",
+    };
+
+    await button.run(interaction as unknown as PickerButtonInteraction, data);
+
+    expect(interaction.acknowledge).toHaveBeenCalledTimes(1);
+    expect(interaction.update).not.toHaveBeenCalled();
+    expect(loadSpy).not.toHaveBeenCalled();
+  });
+
+  it("routes selected model through existing /model command pipeline", async () => {
+    const context = createModelPickerContext();
+    const pickerData = createModelsProviderData({
+      openai: ["gpt-4.1", "gpt-4o"],
+      anthropic: ["claude-sonnet-4-5"],
+    });
+    const modelCommand: ChatCommandDefinition = {
+      key: "model",
+      nativeName: "model",
+      description: "Switch model",
+      textAliases: ["/model"],
+      acceptsArgs: true,
+      argsParsing: "none" as CommandArgsParsing,
+      scope: "native",
+    };
+
+    vi.spyOn(modelPickerModule, "loadDiscordModelPickerData").mockResolvedValue(pickerData);
+    vi.spyOn(commandRegistryModule, "findCommandByNativeName").mockImplementation((name) =>
+      name === "model" ? modelCommand : null,
+    );
+    vi.spyOn(commandRegistryModule, "listChatCommands").mockReturnValue([modelCommand]);
+    vi.spyOn(commandRegistryModule, "resolveCommandArgMenu").mockReturnValue(null);
+
+    const dispatchSpy = vi
+      .spyOn(dispatcherModule, "dispatchReplyWithDispatcher")
+      .mockResolvedValue({} as never);
+
+    const select = createDiscordModelPickerFallbackSelect(context);
+    const interaction = createInteraction({
+      userId: "owner",
+      values: ["gpt-4o"],
+    });
+
+    const data: PickerSelectData = {
+      cmd: "model",
+      act: "model",
+      view: "models",
+      u: "owner",
+      p: "openai",
+      pg: "1",
+    };
+
+    await select.run(interaction as unknown as PickerSelectInteraction, data);
+
+    expect(interaction.update).toHaveBeenCalledTimes(1);
+    expect(dispatchSpy).toHaveBeenCalledTimes(1);
+
+    const dispatchCall = dispatchSpy.mock.calls[0]?.[0] as {
+      ctx?: { CommandBody?: string; CommandArgs?: { values?: { model?: string } } };
+    };
+    expect(dispatchCall.ctx?.CommandBody).toBe("/model openai/gpt-4o");
+    expect(dispatchCall.ctx?.CommandArgs?.values?.model).toBe("openai/gpt-4o");
+  });
+});
