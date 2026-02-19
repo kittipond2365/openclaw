@@ -1,5 +1,8 @@
-import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import type { OpenClawConfig } from "../../config/config.js";
+import type { FinalizedMsgContext } from "../templating.js";
+import type { GetReplyOptions, ReplyPayload } from "../types.js";
+import type { ReplyDispatcher, ReplyDispatchKind } from "./reply-dispatcher.js";
+import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { loadSessionStore, resolveStorePath } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
@@ -12,11 +15,8 @@ import {
 import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 import { maybeApplyTtsToPayload, normalizeTtsAutoMode, resolveTtsConfig } from "../../tts/tts.js";
 import { getReplyFromConfig } from "../reply.js";
-import type { FinalizedMsgContext } from "../templating.js";
-import type { GetReplyOptions, ReplyPayload } from "../types.js";
 import { formatAbortReplyText, tryFastAbortFromMessage } from "./abort.js";
 import { shouldSkipDuplicateInbound } from "./inbound-dedupe.js";
-import type { ReplyDispatcher, ReplyDispatchKind } from "./reply-dispatcher.js";
 import { isRoutableChannel, routeReply } from "./route-reply.js";
 
 const AUDIO_PLACEHOLDER_RE = /^<media:audio>(\s*\([^)]*\))?$/i;
@@ -166,10 +166,10 @@ export async function dispatchReplyFromConfig(params: {
   const channelId = (ctx.OriginatingChannel ?? ctx.Surface ?? ctx.Provider ?? "").toLowerCase();
   const conversationId = ctx.OriginatingTo ?? ctx.To ?? ctx.From ?? undefined;
 
-  // Trigger plugin hooks (fire-and-forget)
+  // Trigger plugin hooks (with suppression support)
   if (hookRunner?.hasHooks("message_received")) {
-    void hookRunner
-      .runMessageReceived(
+    try {
+      const hookResult = await hookRunner.runMessageReceived(
         {
           from: ctx.From ?? "",
           content,
@@ -193,10 +193,22 @@ export async function dispatchReplyFromConfig(params: {
           accountId: ctx.AccountId,
           conversationId,
         },
-      )
-      .catch((err) => {
-        logVerbose(`dispatch-from-config: message_received plugin hook failed: ${String(err)}`);
-      });
+      );
+
+      // Check if any hook requested suppression
+      if (hookResult?.suppress === true) {
+        recordProcessed("skipped", {
+          reason: hookResult.suppressReason ?? "hook_suppressed",
+        });
+        markIdle("message_suppressed");
+        logVerbose(
+          `dispatch-from-config: message suppressed by hook (reason: ${hookResult.suppressReason ?? "unspecified"})`,
+        );
+        return { queuedFinal: false, counts: dispatcher.getQueuedCounts() };
+      }
+    } catch (err) {
+      logVerbose(`dispatch-from-config: message_received plugin hook failed: ${String(err)}`);
+    }
   }
 
   // Bridge to internal hooks (HOOK.md discovery system) - refs #8807
