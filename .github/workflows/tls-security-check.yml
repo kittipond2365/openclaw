@@ -3,14 +3,14 @@ name: TLS Security Check
 on:
   pull_request:
     paths:
-      - '**/*.kt'
-      - '**/*.java'
+      - "**/*.kt"
+      - "**/*.java"
   push:
     branches:
       - main
     paths:
-      - '**/*.kt'
-      - '**/*.java'
+      - "**/*.kt"
+      - "**/*.java"
 
 jobs:
   tls-security-check:
