@@ -47,9 +47,7 @@
     box-shadow var(--duration-normal) var(--ease-out),
     transform var(--duration-normal) var(--ease-out),
     background var(--duration-normal) var(--ease-out);
-  box-shadow:
-    var(--glass-shadow-sm),
-    var(--glass-inner-highlight);
+  box-shadow: var(--glass-shadow-sm), var(--glass-inner-highlight);
 }
 
 .card::before {
@@ -109,9 +107,7 @@
 
 .stat:hover {
   border-color: var(--glass-border-hover);
-  box-shadow:
-    var(--glass-shadow-sm),
-    var(--glass-inner-highlight);
+  box-shadow: var(--glass-shadow-sm), var(--glass-inner-highlight);
 }
 
 .stat-label {
@@ -510,7 +506,9 @@
 .field textarea:focus,
 .field select:focus {
   border-color: var(--sonance-blue);
-  box-shadow: var(--focus-ring), 0 0 20px var(--glow-primary-subtle);
+  box-shadow:
+    var(--focus-ring),
+    0 0 20px var(--glow-primary-subtle);
 }
 
 .field select {

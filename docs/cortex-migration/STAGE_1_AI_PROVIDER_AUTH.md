@@ -4,7 +4,7 @@
 
 **Status**: Not started
 **Depends on**: Cortex deployed and healthy at `cortex-bice.vercel.app`
-**Reference**: [Cortex ATHENA_CORTEX_INTEGRATION.md](../../Cortex/docs/athena/ATHENA_CORTEX_INTEGRATION.md)
+**Reference**: Cortex ATHENA_CORTEX_INTEGRATION.md (see Cortex repository docs/athena/)
 
 ---
 

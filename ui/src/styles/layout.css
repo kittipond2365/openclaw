@@ -32,8 +32,7 @@
 :root:not([data-theme="light"]) .shell {
   background:
     radial-gradient(ellipse at 20% 50%, rgba(0, 163, 225, 0.04) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(0, 163, 225, 0.03) 0%, transparent 40%),
-    var(--bg);
+    radial-gradient(ellipse at 80% 20%, rgba(0, 163, 225, 0.03) 0%, transparent 40%), var(--bg);
 }
 
 .shell--chat {

@@ -2,10 +2,10 @@
 
 :root {
   /* Sonance Brand Constants */
-  --sonance-charcoal: #333F48;
-  --sonance-blue: #00A3E1;
-  --sonance-light-gray: #D9D9D6;
-  --iport-orange: #FC4C02;
+  --sonance-charcoal: #333f48;
+  --sonance-blue: #00a3e1;
+  --sonance-light-gray: #d9d9d6;
+  --iport-orange: #fc4c02;
 
   /* Background - Sonance dark palette */
   --bg: #1a1f24;
@@ -16,10 +16,10 @@
 
   /* Card / Surface */
   --card: #242a31;
-  --card-foreground: #FFFFFF;
+  --card-foreground: #ffffff;
   --card-highlight: rgba(255, 255, 255, 0.06);
   --popover: #242a31;
-  --popover-foreground: #FFFFFF;
+  --popover-foreground: #ffffff;
 
   /* Panel */
   --panel: #1a1f24;
@@ -29,9 +29,9 @@
   --chrome-strong: rgba(26, 31, 36, 0.98);
 
   /* Text */
-  --text: #FFFFFF;
-  --text-strong: #FFFFFF;
-  --chat-text: #FFFFFF;
+  --text: #ffffff;
+  --text-strong: #ffffff;
+  --chat-text: #ffffff;
   --muted: #8f999f;
   --muted-strong: #6b7780;
   --muted-foreground: #8f999f;
@@ -41,22 +41,22 @@
   --border-strong: #424c54;
   --border-hover: #515c64;
   --input: #3a444c;
-  --ring: #00A3E1;
+  --ring: #00a3e1;
 
   /* Accent - Sonance Blue "The Beam" */
-  --accent: #00A3E1;
+  --accent: #00a3e1;
   --accent-hover: #33b5e7;
-  --accent-muted: #00A3E1;
+  --accent-muted: #00a3e1;
   --accent-subtle: rgba(0, 163, 225, 0.15);
-  --accent-foreground: #FFFFFF;
+  --accent-foreground: #ffffff;
   --accent-glow: rgba(0, 163, 225, 0.35);
-  --primary: #00A3E1;
+  --primary: #00a3e1;
   --primary-foreground: #ffffff;
 
   /* Secondary - IPORT Orange */
   --secondary: #2d343c;
-  --secondary-foreground: #FFFFFF;
-  --accent-2: #FC4C02;
+  --secondary-foreground: #ffffff;
+  --accent-2: #fc4c02;
   --accent-2-muted: rgba(252, 76, 2, 0.7);
   --accent-2-subtle: rgba(252, 76, 2, 0.15);
 
@@ -72,7 +72,7 @@
   --danger: #ef4444;
   --danger-muted: rgba(239, 68, 68, 0.75);
   --danger-subtle: rgba(239, 68, 68, 0.12);
-  --info: #42A5F5;
+  --info: #42a5f5;
 
   /* Focus */
   --focus: rgba(0, 163, 225, 0.25);
@@ -90,8 +90,7 @@
   --mono:
     "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
   --font-body: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display:
-    "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -135,49 +134,49 @@
 
 /* Light theme - Sonance clean */
 :root[data-theme="light"] {
-  --bg: #FFFFFF;
+  --bg: #ffffff;
   --bg-accent: #f8f9fa;
-  --bg-elevated: #FFFFFF;
+  --bg-elevated: #ffffff;
   --bg-hover: #f0f2f3;
   --bg-muted: #f0f2f3;
   --bg-content: #f8f9fa;
 
-  --card: #FFFFFF;
-  --card-foreground: #333F48;
+  --card: #ffffff;
+  --card-foreground: #333f48;
   --card-highlight: rgba(0, 0, 0, 0.03);
-  --popover: #FFFFFF;
-  --popover-foreground: #333F48;
+  --popover: #ffffff;
+  --popover-foreground: #333f48;
 
-  --panel: #FFFFFF;
+  --panel: #ffffff;
   --panel-strong: #f8f9fa;
   --panel-hover: #f0f2f3;
   --chrome: rgba(255, 255, 255, 0.95);
   --chrome-strong: rgba(255, 255, 255, 0.98);
 
-  --text: #333F48;
-  --text-strong: #333F48;
-  --chat-text: #333F48;
+  --text: #333f48;
+  --text-strong: #333f48;
+  --chat-text: #333f48;
   --muted: #6b7780;
   --muted-strong: #515c64;
   --muted-foreground: #6b7780;
 
-  --border: #D9D9D6;
+  --border: #d9d9d6;
   --border-strong: #b8bfc4;
   --border-hover: #8f999f;
-  --input: #D9D9D6;
+  --input: #d9d9d6;
 
-  --accent: #333F48;
+  --accent: #333f48;
   --accent-hover: #2a343c;
-  --accent-muted: #333F48;
+  --accent-muted: #333f48;
   --accent-subtle: rgba(51, 63, 72, 0.12);
   --accent-foreground: #ffffff;
   --accent-glow: rgba(51, 63, 72, 0.15);
-  --primary: #333F48;
+  --primary: #333f48;
   --primary-foreground: #ffffff;
 
   --secondary: #f0f2f3;
-  --secondary-foreground: #333F48;
-  --accent-2: #00A3E1;
+  --secondary-foreground: #333f48;
+  --accent-2: #00a3e1;
   --accent-2-muted: rgba(0, 163, 225, 0.75);
   --accent-2-subtle: rgba(0, 163, 225, 0.12);
 
@@ -192,7 +191,7 @@
   --danger: #dc2626;
   --danger-muted: rgba(220, 38, 38, 0.75);
   --danger-subtle: rgba(220, 38, 38, 0.1);
-  --info: #1565C0;
+  --info: #1565c0;
 
   --focus: rgba(51, 63, 72, 0.2);
   --focus-glow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ring), 0 0 16px var(--accent-glow);
@@ -300,7 +299,7 @@ select {
 
 ::selection {
   background: var(--sonance-charcoal);
-  color: var(--sonance-white, #FFFFFF);
+  color: var(--sonance-white, #ffffff);
 }
 
 :root:not([data-theme="light"]) ::selection {
