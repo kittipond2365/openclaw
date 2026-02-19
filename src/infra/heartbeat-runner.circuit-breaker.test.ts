@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/config.js";
 import { startHeartbeatRunner } from "./heartbeat-runner.js";
+import type { HeartbeatRunResult } from "./heartbeat-wake.js";
 
 describe("heartbeat runner - circuit breaker", () => {
-  function startDefaultRunner(runOnce: any) {
+  function startDefaultRunner(runOnce: () => Promise<HeartbeatRunResult>) {
     return startHeartbeatRunner({
       cfg: {
         agents: { defaults: { heartbeat: { every: "30m" } } },
@@ -69,7 +70,9 @@ describe("heartbeat runner - circuit breaker", () => {
 
     let fail = true;
     const runSpy = vi.fn().mockImplementation(async () => {
-      if (fail) return { status: "failed", reason: "error" };
+      if (fail) {
+        return { status: "failed", reason: "error" };
+      }
       return { status: "ran", durationMs: 1 };
     });
 

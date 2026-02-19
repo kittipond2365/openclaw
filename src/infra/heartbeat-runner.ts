@@ -70,13 +70,6 @@ const CIRCUIT_BREAKER_THRESHOLD = 5;
 const CIRCUIT_BREAKER_RESET_MS = 5 * 60 * 1000; // 5 minutes
 const CIRCUIT_BREAKER_BACKOFF_MAX_MS = 30 * 60 * 1000; // 30 minutes max backoff
 
-// Extended wake params type for internal use (extends the base HeartbeatWakeHandler params)
-type ExtendedHeartbeatWakeParams = {
-  reason?: string;
-  agentId?: string;
-  sessionKey?: string;
-};
-
 export type HeartbeatDeps = OutboundSendDeps &
   ChannelHeartbeatDeps & {
     runtime?: RuntimeEnv;
@@ -745,7 +738,12 @@ export async function runHeartbeatOnce(opts: {
     // Explicitly map auth failures and other model provider errors to status: "failed"
     // so the circuit breaker can detect silent failures (e.g. expired tokens).
     if (replyResult && typeof replyResult === "object") {
-      const res = replyResult as any;
+      const res = replyResult as {
+        status?: string;
+        error?: string;
+        text?: string;
+        message?: string;
+      };
       if (
         res.status === "failed" ||
         res.error ||
@@ -1006,7 +1004,9 @@ function shouldAttemptReset(
   lastFailureMs: number | undefined,
   now: number,
 ): boolean {
-  if (!circuitOpen || !lastFailureMs) return true;
+  if (!circuitOpen || !lastFailureMs) {
+    return true;
+  }
   return now - lastFailureMs >= CIRCUIT_BREAKER_RESET_MS;
 }
 
