@@ -51,6 +51,8 @@ describe("signal event handler typing + read receipts", () => {
         historyLimit: 0,
         groupHistories: new Map(),
         sendReadReceipts: true,
+        injectLinkPreviews: true,
+        preserveTextStyles: true,
       }),
     );
 
