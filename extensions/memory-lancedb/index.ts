@@ -244,7 +244,7 @@ class MemoryDB {
 
   async optimize(cleanupOlderThan?: Date): Promise<{
     compaction: { fragmentsRemoved: number; fragmentsAdded: number };
-    prune: { bytesRemoved: number; oldVersions: number };
+    prune: { bytesRemoved: number; oldVersionsRemoved: number };
   }> {
     await this.ensureInitialized();
     const result = await this.table!.optimize(
