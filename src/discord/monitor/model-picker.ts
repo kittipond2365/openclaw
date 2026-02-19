@@ -106,6 +106,10 @@ type DiscordModelPickerRenderShellParams = {
   detailLines: string[];
   rows: DiscordModelPickerRow[];
   footer?: string;
+  /** Text shown after the divider but before the interactive rows. */
+  preRowText?: string;
+  /** Extra rows appended after the main rows, preceded by a divider. */
+  trailingRows?: DiscordModelPickerRow[];
 };
 
 export type DiscordModelPickerRenderedView = {
@@ -354,7 +358,14 @@ function buildRenderedShell(
     containerComponents.push(new TextDisplay(params.detailLines.join("\n")));
   }
   containerComponents.push(new Separator({ divider: true, spacing: "small" }));
+  if (params.preRowText) {
+    containerComponents.push(new TextDisplay(params.preRowText));
+  }
   containerComponents.push(...params.rows);
+  if (params.trailingRows && params.trailingRows.length > 0) {
+    containerComponents.push(new Separator({ divider: true, spacing: "small" }));
+    containerComponents.push(...params.trailingRows);
+  }
   if (params.footer) {
     containerComponents.push(new Separator({ divider: false, spacing: "small" }));
     containerComponents.push(new TextDisplay(`-# ${params.footer}`));
@@ -408,7 +419,7 @@ function buildModelRows(params: {
   pendingModel?: string;
   pendingModelIndex?: number;
   quickModels?: string[];
-}): DiscordModelPickerRow[] {
+}): { rows: DiscordModelPickerRow[]; quickModelRow?: Row<Button> } {
   const parsedCurrentModel = parseCurrentModelRef(params.currentModel);
   const parsedPendingModel = parseCurrentModelRef(params.pendingModel);
   const selectedModelRef = parsedPendingModel ?? parsedCurrentModel;
@@ -420,29 +431,27 @@ function buildModelRows(params: {
     .filter((entry) => params.data.byProvider.get(entry.provider)?.has(entry.model))
     .slice(0, DISCORD_COMPONENT_MAX_BUTTONS_PER_ROW);
 
+  let quickModelRow: Row<Button> | undefined;
   if (quickModels.length > 0) {
-    rows.push(
-      new Row(
-        quickModels.map((entry, index) =>
-          createModelPickerButton({
-            label: formatQuickModelButtonLabel(`${entry.provider}/${entry.model}`),
-            style:
-              selectedModelRef?.provider === entry.provider &&
-              selectedModelRef.model === entry.model
-                ? ButtonStyle.Primary
-                : ButtonStyle.Secondary,
-            customId: buildDiscordModelPickerCustomId({
-              command: params.command,
-              action: "quick",
-              view: "models",
-              provider: params.modelPage.provider,
-              page: params.modelPage.page,
-              providerPage: params.providerPage,
-              recentSlot: index + 1,
-              userId: params.userId,
-            }),
+    quickModelRow = new Row(
+      quickModels.map((entry, index) =>
+        createModelPickerButton({
+          label: formatQuickModelButtonLabel(`${entry.provider}/${entry.model}`),
+          style:
+            selectedModelRef?.provider === entry.provider && selectedModelRef.model === entry.model
+              ? ButtonStyle.Primary
+              : ButtonStyle.Secondary,
+          customId: buildDiscordModelPickerCustomId({
+            command: params.command,
+            action: "quick",
+            view: "models",
+            provider: params.modelPage.provider,
+            page: params.modelPage.page,
+            providerPage: params.providerPage,
+            recentSlot: index + 1,
+            userId: params.userId,
           }),
-        ),
+        }),
       ),
     );
   }
@@ -560,7 +569,7 @@ function buildModelRows(params: {
     ]),
   );
 
-  return rows;
+  return { rows, quickModelRow };
 }
 
 /**
@@ -815,7 +824,7 @@ export function renderDiscordModelPickerModelsView(
     });
   }
 
-  const rows = buildModelRows({
+  const { rows, quickModelRow } = buildModelRows({
     command: params.command,
     userId: params.userId,
     data: params.data,
@@ -835,12 +844,10 @@ export function renderDiscordModelPickerModelsView(
   return buildRenderedShell({
     layout: params.layout ?? "v2",
     title: "Model Picker",
-    detailLines: [
-      formatCurrentModelLine(params.currentModel),
-      `Default: ${defaultModel}`,
-      pendingLine,
-    ],
+    detailLines: [formatCurrentModelLine(params.currentModel), `Default: ${defaultModel}`],
+    preRowText: pendingLine,
     rows,
+    trailingRows: quickModelRow ? [quickModelRow] : undefined,
   });
 }
 
