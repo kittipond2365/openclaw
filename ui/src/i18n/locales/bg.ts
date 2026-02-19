@@ -70,7 +70,8 @@ export const bg: TranslationMap = {
       uptime: "Време на работа",
       tickInterval: "Интервал на обновяване",
       lastChannelsRefresh: "Последно опресняване на каналите",
-      channelsHint: "Използвайте Канали, за да свържете WhatsApp, Telegram, Discord, Signal или iMessage.",
+      channelsHint:
+        "Използвайте Канали, за да свържете WhatsApp, Telegram, Discord, Signal или iMessage.",
     },
     stats: {
       instances: "Инстанции",
@@ -84,14 +85,16 @@ export const bg: TranslationMap = {
       title: "Бележки",
       subtitle: "Бързи напомняния за настройки на дистанционно управление.",
       tailscaleTitle: "Tailscale serve",
-      tailscaleText: "Използвайте serve режим, за да държите шлюза на loopback с удостоверяване чрез Tailnet.",
+      tailscaleText:
+        "Използвайте serve режим, за да държите шлюза на loopback с удостоверяване чрез Tailnet.",
       sessionTitle: "Хигиена на сесиите",
       sessionText: "Използвайте /new или sessions.patch, за да нулирате контекста.",
       cronTitle: "Напомняния за Cron",
       cronText: "Използвайте изолирани сесии за повтарящи се стартирания.",
     },
     auth: {
-      required: "Този шлюз изисква удостоверяване. Добавете токен или парола и натиснете Свържи се.",
+      required:
+        "Този шлюз изисква удостоверяване. Добавете токен или парола и натиснете Свържи се.",
       failed:
         "Неуспешно удостоверяване. Копирайте отново URL с токен чрез {command} или актуализирайте токена, след това натиснете Свържи се.",
     },
