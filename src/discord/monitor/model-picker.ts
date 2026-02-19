@@ -514,22 +514,20 @@ function buildModelRows(params: {
   rows.push(
     new Row([
       createModelPickerButton({
-        label: "Submit",
-        style: ButtonStyle.Primary,
-        disabled: !hasPendingSelection,
+        label: "Cancel",
+        style: ButtonStyle.Secondary,
         customId: buildDiscordModelPickerCustomId({
           command: params.command,
-          action: "submit",
+          action: "cancel",
           view: "models",
           provider: params.modelPage.provider,
           page: params.modelPage.page,
           providerPage: providerPage.page,
-          modelIndex: params.pendingModelIndex,
           userId: params.userId,
         }),
       }),
       createModelPickerButton({
-        label: "Reset default",
+        label: "Reset to default",
         style: ButtonStyle.Secondary,
         disabled: shouldDisableReset,
         customId: buildDiscordModelPickerCustomId({
@@ -543,15 +541,17 @@ function buildModelRows(params: {
         }),
       }),
       createModelPickerButton({
-        label: "Cancel",
-        style: ButtonStyle.Secondary,
+        label: "Submit",
+        style: ButtonStyle.Primary,
+        disabled: !hasPendingSelection,
         customId: buildDiscordModelPickerCustomId({
           command: params.command,
-          action: "cancel",
+          action: "submit",
           view: "models",
           provider: params.modelPage.provider,
           page: params.modelPage.page,
           providerPage: providerPage.page,
+          modelIndex: params.pendingModelIndex,
           userId: params.userId,
         }),
       }),

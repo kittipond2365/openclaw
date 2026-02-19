@@ -426,17 +426,17 @@ describe("Discord model picker rendering", () => {
     const navButtons = rows[2]?.components ?? [];
     expect(navButtons).toHaveLength(3);
 
-    const submitState = parseDiscordModelPickerCustomId(navButtons[0]?.custom_id ?? "");
-    expect(submitState?.action).toBe("submit");
-    expect(submitState?.provider).toBe("openai");
-    expect(submitState?.modelIndex).toBe(3);
+    const cancelState = parseDiscordModelPickerCustomId(navButtons[0]?.custom_id ?? "");
+    expect(cancelState?.action).toBe("cancel");
 
     const resetState = parseDiscordModelPickerCustomId(navButtons[1]?.custom_id ?? "");
     expect(resetState?.action).toBe("reset");
     expect(resetState?.provider).toBe("openai");
 
-    const cancelState = parseDiscordModelPickerCustomId(navButtons[2]?.custom_id ?? "");
-    expect(cancelState?.action).toBe("cancel");
+    const submitState = parseDiscordModelPickerCustomId(navButtons[2]?.custom_id ?? "");
+    expect(submitState?.action).toBe("submit");
+    expect(submitState?.provider).toBe("openai");
+    expect(submitState?.modelIndex).toBe(3);
   });
 
   it("renders not-found model view with a back button", () => {
