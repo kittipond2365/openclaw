@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ### Build & Type Checking
+
 ```bash
 pnpm install              # Install dependencies
 pnpm build                # Full build (canvas bundle, tsdown, plugin SDK, copy assets)
@@ -12,6 +13,7 @@ pnpm tsgo                 # TypeScript type checking
 ```
 
 ### Testing
+
 ```bash
 pnpm test                 # Run all unit tests in parallel
 pnpm test:fast            # Run unit tests (vitest.unit.config.ts)
@@ -25,6 +27,7 @@ vitest run path/to/file.test.ts
 ```
 
 ### Linting & Formatting
+
 ```bash
 pnpm check                # Run format check, tsgo, and lint
 pnpm format               # Format check (oxfmt)
@@ -34,15 +37,27 @@ pnpm lint:fix             # Auto-fix lint issues and format
 ```
 
 ### Development Workflow
+
 ```bash
 pnpm openclaw ...         # Run CLI in dev mode
 pnpm dev                  # Run with dev watcher
-pnpm gateway:dev          # Run gateway in dev mode (skip channels)
 pnpm gateway:watch        # Watch mode for gateway
 pnpm tui:dev              # Run TUI in dev mode
 ```
 
+### Restarting the Dev Gateway
+
+Always use this exact command to start/restart the dev gateway. Do not use `pnpm gateway:dev` or improvise alternatives.
+
+```bash
+cd /Users/ada/repos/openclaw-fork
+nohup env OPENCLAW_STATE_DIR=/Users/ada/.openclaw-dev node scripts/run-node.mjs gateway --force --port 18889 run > /tmp/openclaw-dev-gateway.log 2>&1 &
+```
+
+Check startup with: `tail -10 /tmp/openclaw-dev-gateway.log`
+
 ### UI Development
+
 ```bash
 pnpm ui:install           # Install UI dependencies
 pnpm ui:dev               # Run UI dev server
@@ -56,7 +71,9 @@ OpenClaw is a **multi-channel AI gateway** that routes messages from various mes
 ### Core Components
 
 #### 1. Gateway (`src/gateway/`)
+
 The central orchestration engine that:
+
 - Runs a WebSocket + HTTP server for control plane communication
 - Manages channel lifecycles (start/stop/restart with backoff)
 - Routes gateway method calls (agent, chat, sessions, models, cron, etc.)
@@ -64,13 +81,16 @@ The central orchestration engine that:
 - Coordinates between channels and agents
 
 Key files:
+
 - `server.impl.ts`: Main gateway server implementation
 - `server-http.ts`: HTTP/WebSocket server setup
 - `server-methods/*.ts`: Gateway RPC methods organized by domain
 - `server-channels.ts`: Channel lifecycle management
 
 #### 2. Routing (`src/routing/`)
+
 Message routing logic that determines which agent handles which message:
+
 - Routes based on channel + peer + account + guild roles
 - Generates deterministic session keys for persistence
 - Implements binding fallback chains (peer → parent → guild+roles → team → account → channel → default)
@@ -78,7 +98,9 @@ Message routing logic that determines which agent handles which message:
 Key file: `resolve-route.ts`
 
 #### 3. Channel Integration (`src/channels/`)
+
 Plugin-based architecture for messaging platforms:
+
 - Each channel is a plugin implementing optional adapters:
   - `ChannelMessagingAdapter`: Inbound/outbound messages
   - `ChannelAuthAdapter`: Auth/login flows
@@ -92,42 +114,52 @@ Core channels in `src/`: `discord/`, `telegram/`, `slack/`, `signal/`, `imessage
 Extension channels in `extensions/`: `matrix/`, `msteams/`, `zalo/`, `voice-call/`, etc.
 
 Key files:
+
 - `plugins/types.plugin.ts`: Channel plugin interface
 - `plugins/index.ts`: Channel registry
 - `dock.ts`: Lightweight interface for reply flows
 
 #### 4. Agent Runtime (`src/agents/`)
+
 Wraps the Pi Agent Core for AI inference:
+
 - Spawns and manages agent instances with workspace isolation
 - Resolves model configs and handles auth profiles
 - Provides tool system bridging gateway capabilities to agent tools
 - Handles OAuth/API key rotation and failover
 
 Key files:
+
 - `agent-scope.ts`: Agent spawning and workspace management
 - `models-config.ts`: Model routing and provider discovery
 - `tools/`: Tool definitions (browser, canvas, node commands)
 - `auth-profiles/`: Multi-profile auth management
 
 #### 5. Plugin System (`src/plugins/`)
+
 Runtime plugin discovery and loading:
+
 - Discovers plugins from: bundled (core), npm packages, workspace, git repos
 - Plugin types: channels, providers, tools, memory, hooks
 - Plugins declare capabilities via manifests (tools, hooks, commands, routes, config schema)
 
 Key files:
+
 - `registry.ts`: Plugin discovery and registration
 - `loader.ts`: Plugin loading from multiple sources
 - `manifest.ts`: Plugin capability declarations
 - `hooks.ts`: Gateway lifecycle hooks integration
 
 #### 6. CLI (`src/cli/`)
+
 Command-line interface layer:
+
 - Commander.js-based CLI with subcommands
 - Interactive onboarding wizard for setup
 - Session management and profile switching (dev/production)
 
 Key files:
+
 - `program.ts`, `run-main.ts`: Command dispatch
 - `wizard/`: Onboarding wizard
 - `profile.ts`: Environment profile management
@@ -178,6 +210,7 @@ Inbound Message Flow:
 Plugins extend OpenClaw via a consistent contract:
 
 **Channel Plugin Structure:**
+
 ```
 ChannelId → ChannelMeta (name, order, capabilities)
          → ChannelCapabilities (what it can do)
@@ -187,12 +220,14 @@ ChannelId → ChannelMeta (name, order, capabilities)
 ```
 
 **Plugin Discovery:**
+
 1. Scan `extensions/` for npm-style packages
 2. Load `package.json` with `"openclaw": { "extensions": [...] }`
 3. Plugins export channel definitions or provider auth
 4. Registry deduplicates and orders channels
 
 **Plugin Loading Order:**
+
 1. Built-in plugins (bundled)
 2. NPM package plugins
 3. Workspace/custom plugins
@@ -201,11 +236,13 @@ ChannelId → ChannelMeta (name, order, capabilities)
 ### Build System
 
 **Primary Tool: tsdown**
+
 - Compiles TypeScript entry points to optimized JS bundles
 - Outputs to `dist/`
 - Generates plugin SDK with `.d.ts` files
 
 **Build Pipeline:**
+
 ```bash
 pnpm build:
   1. pnpm canvas:a2ui:bundle  # Bundle A2UI renderer for Live Canvas
@@ -220,6 +257,7 @@ pnpm build:
 ```
 
 **Other Build Components:**
+
 - **A2UI Canvas**: Lit-based renderer bundled via `scripts/bundle-a2ui.sh`
 - **Control UI**: Vite-built web dashboard (`ui/`)
 - **Plugin SDK**: Public API at `dist/plugin-sdk/` for extension authors
@@ -228,6 +266,7 @@ pnpm build:
 ### Configuration
 
 **Config Structure (`config.json`):**
+
 - `agents`: Agent definitions with model configs, tools, hooks
 - `channels`: Per-channel config (allowlists, DM policies)
 - `models`: Provider auth, model selection, fallbacks
@@ -236,12 +275,14 @@ pnpm build:
 - `cron`: Scheduled tasks
 
 **Config Sources (priority order):**
+
 1. CLI flags
 2. Environment variables (`OPENCLAW_*`)
 3. `config.json` (hot-reloaded)
 4. Defaults from schema
 
 **State Storage:**
+
 - User config: `~/.openclaw/`
 - Agent workspaces: Per-agent directories
 - Session history: Agent session logs
@@ -261,6 +302,7 @@ pnpm build:
 ## Important Coding Conventions
 
 ### TypeScript Style
+
 - **Strict typing**: Avoid `any`, prefer explicit types
 - **No `@ts-nocheck`**: Fix root causes instead
 - **No prototype mutation**: Use explicit inheritance/composition
@@ -270,6 +312,7 @@ pnpm build:
 - **Node.js 22+**: Required runtime
 
 ### Testing
+
 - **Colocated tests**: Place `*.test.ts` next to source files
 - **E2E tests**: Use `*.e2e.test.ts` suffix
 - **Live tests**: Mark with `.live.test.ts` (requires API keys)
@@ -277,25 +320,30 @@ pnpm build:
 - **Run before push**: `pnpm test` when changing logic
 
 ### Code Organization
+
 - **File length**: Keep under ~500-700 LOC when feasible
 - **Extract helpers**: Don't create "V2" copies of functions
 - **Brief comments**: Add for tricky/non-obvious logic
 - **Avoid over-engineering**: Don't add features/abstractions beyond requirements
 
 ### Tool Schemas
+
 - **No `Type.Union`**: Avoid `anyOf`/`oneOf`/`allOf` in tool schemas
 - **Use `stringEnum`**: For string enums, not `Type.Union`
 - **Top-level object**: Tool schemas must be `type: "object"` with `properties`
 - **No `format` keyword**: Some validators reject it
 
 ### Channel Development
+
 When adding/modifying channels:
+
 - Update **all** channel surfaces (macOS app, web UI, mobile, docs)
 - Update channel lists and configuration forms
 - Test pairing, allowlists, DM policies, and group behavior
 - Consider impact on all 39+ channels (built-in + extensions)
 
 ### Formatting & Linting
+
 - **Oxlint + Oxfmt**: Run `pnpm check` before commits
 - **Auto-fix**: `pnpm lint:fix` for quick fixes
 - **No hardcoded colors**: Use shared palette in `src/terminal/palette.ts`
@@ -303,14 +351,18 @@ When adding/modifying channels:
 ## Common Gotchas
 
 ### Control UI Decorators
+
 The Control UI uses **legacy decorators** (not standard decorators):
+
 ```ts
 @state() foo = "bar";
 @property({ type: Number }) count = 0;
 ```
+
 Don't flip to standard decorators unless updating build tooling.
 
 ### Multi-Agent Safety
+
 - **Don't create/drop git stashes** unless explicitly requested
 - **Don't switch branches** unless explicitly requested
 - **Don't modify worktrees** unless explicitly requested
@@ -318,18 +370,21 @@ Don't flip to standard decorators unless updating build tooling.
 - **Auto-resolve formatting**: If diffs are formatting-only, auto-stage
 
 ### macOS-Specific
+
 - Gateway runs as menubar app (not LaunchAgent)
 - Restart via `scripts/restart-mac.sh` or Mac app
 - Logs: `scripts/clawlog.sh` for unified logs
 - No rebuilds over SSH; rebuild directly on Mac
 
 ### Dependencies
+
 - **Never edit `node_modules`**: Updates will overwrite
 - **Exact versions for patches**: If `pnpm.patchedDependencies` exists, use exact version (no `^`/`~`)
 - **Patching requires approval**: Don't add patches/overrides without explicit permission
 - **Never update Carbon dependency**: Frozen upstream
 
 ### Release & Versioning
+
 - **Version locations**: `package.json`, `apps/*/build.gradle.kts`, `apps/*/Info.plist`, docs
 - **No appcast changes**: Only touch when cutting macOS Sparkle release
 - **Restart mobile apps**: "Restart" means rebuild + relaunch, not just relaunch
@@ -337,24 +392,29 @@ Don't flip to standard decorators unless updating build tooling.
 ## Quick Navigation
 
 ### Understanding Message Routing
+
 Start here: `src/routing/resolve-route.ts`
 
 ### Understanding Channels
+
 1. Channel plugin types: `src/channels/plugins/types.plugin.ts`
 2. Example channel: `extensions/discord/index.ts`
 3. Channel lifecycle: `src/gateway/server-channels.ts`
 
 ### Understanding Agents
+
 1. Agent spawning: `src/agents/agent-scope.ts`
 2. Model routing: `src/agents/models-config.ts`
 3. Tool system: `src/agents/tools/`
 
 ### Understanding Plugins
+
 1. Plugin registry: `src/plugins/registry.ts`
 2. Plugin SDK exports: `src/plugin-sdk/index.ts`
 3. Hook system: `src/plugins/hooks.ts`
 
 ### Understanding Gateway
+
 1. Server implementation: `src/gateway/server.impl.ts`
 2. Gateway methods: `src/gateway/server-methods/`
 3. Session utils: `src/gateway/session-utils.ts`
@@ -370,6 +430,7 @@ Start here: `src/routing/resolve-route.ts`
 ## Testing Checklist
 
 Before submitting code:
+
 1. `pnpm check` (format + lint + typecheck)
 2. `pnpm build` (ensure build passes)
 3. `pnpm test` (run tests)

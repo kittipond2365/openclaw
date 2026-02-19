@@ -460,7 +460,7 @@ async function replyWithDiscordModelPickerProviders(params: {
     command: params.command,
     userId: params.userId,
     data,
-    provider: data.resolvedDefault.provider,
+    provider: splitDiscordModelRef(currentModel ?? "")?.provider ?? data.resolvedDefault.provider,
     page: 1,
     providerPage: 1,
     currentModel,
