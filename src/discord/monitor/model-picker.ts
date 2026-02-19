@@ -394,7 +394,7 @@ function buildModelRows(params: {
   pendingModel?: string;
   pendingModelIndex?: number;
   quickModels?: string[];
-}): { rows: DiscordModelPickerRow[] } {
+}): { rows: DiscordModelPickerRow[]; buttonRow: Row<Button> } {
   const parsedCurrentModel = parseCurrentModelRef(params.currentModel);
   const parsedPendingModel = parseCurrentModelRef(params.pendingModel);
   const rows: DiscordModelPickerRow[] = [];
@@ -534,9 +534,7 @@ function buildModelRows(params: {
     }),
   );
 
-  rows.push(new Row(buttonRowItems));
-
-  return { rows };
+  return { rows, buttonRow: new Row(buttonRowItems) };
 }
 
 /**
@@ -791,7 +789,7 @@ export function renderDiscordModelPickerModelsView(
     });
   }
 
-  const { rows } = buildModelRows({
+  const { rows, buttonRow } = buildModelRows({
     command: params.command,
     userId: params.userId,
     data: params.data,
@@ -814,6 +812,7 @@ export function renderDiscordModelPickerModelsView(
     detailLines: [formatCurrentModelLine(params.currentModel), `Default: ${defaultModel}`],
     preRowText: pendingLine,
     rows,
+    trailingRows: [buttonRow],
   });
 }
 
