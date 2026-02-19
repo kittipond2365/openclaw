@@ -236,7 +236,7 @@ describe("diagnostics-otel service", () => {
 
   test("appends signal path when endpoint contains non-signal /v1 segment", async () => {
     const service = createDiagnosticsOtelService();
-    await service.start({
+    const ctx: OpenClawPluginServiceContext = {
       config: {
         diagnostics: {
           enabled: true,
@@ -251,16 +251,18 @@ describe("diagnostics-otel service", () => {
         },
       },
       logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
-    });
+      stateDir: "/tmp/openclaw-diagnostics-otel-test",
+    };
+    await service.start(ctx);
 
     const options = traceExporterCtor.mock.calls[0]?.[0] as { url?: string } | undefined;
     expect(options?.url).toBe("https://www.comet.com/opik/api/v1/private/otel/v1/traces");
-    await service.stop?.();
+    await service.stop?.(ctx);
   });
 
   test("keeps already signal-qualified endpoint unchanged", async () => {
     const service = createDiagnosticsOtelService();
-    await service.start({
+    const ctx: OpenClawPluginServiceContext = {
       config: {
         diagnostics: {
           enabled: true,
@@ -275,16 +277,18 @@ describe("diagnostics-otel service", () => {
         },
       },
       logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
-    });
+      stateDir: "/tmp/openclaw-diagnostics-otel-test",
+    };
+    await service.start(ctx);
 
     const options = traceExporterCtor.mock.calls[0]?.[0] as { url?: string } | undefined;
     expect(options?.url).toBe("https://collector.example.com/v1/traces");
-    await service.stop?.();
+    await service.stop?.(ctx);
   });
 
   test("keeps signal-qualified endpoint unchanged when it has query params", async () => {
     const service = createDiagnosticsOtelService();
-    await service.start({
+    const ctx: OpenClawPluginServiceContext = {
       config: {
         diagnostics: {
           enabled: true,
@@ -299,16 +303,18 @@ describe("diagnostics-otel service", () => {
         },
       },
       logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
-    });
+      stateDir: "/tmp/openclaw-diagnostics-otel-test",
+    };
+    await service.start(ctx);
 
     const options = traceExporterCtor.mock.calls[0]?.[0] as { url?: string } | undefined;
     expect(options?.url).toBe("https://collector.example.com/v1/traces?timeout=30s");
-    await service.stop?.();
+    await service.stop?.(ctx);
   });
 
   test("keeps signal-qualified endpoint unchanged when signal path casing differs", async () => {
     const service = createDiagnosticsOtelService();
-    await service.start({
+    const ctx: OpenClawPluginServiceContext = {
       config: {
         diagnostics: {
           enabled: true,
@@ -323,10 +329,12 @@ describe("diagnostics-otel service", () => {
         },
       },
       logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
-    });
+      stateDir: "/tmp/openclaw-diagnostics-otel-test",
+    };
+    await service.start(ctx);
 
     const options = traceExporterCtor.mock.calls[0]?.[0] as { url?: string } | undefined;
     expect(options?.url).toBe("https://collector.example.com/v1/Traces");
-    await service.stop?.();
+    await service.stop?.(ctx);
   });
 });
