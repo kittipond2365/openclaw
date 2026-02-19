@@ -18,10 +18,16 @@ export function buildInboundMetaSystemPrompt(ctx: TemplateContext): string {
   const replyToId = safeTrim(ctx.ReplyToId);
   const chatId = safeTrim(ctx.OriginatingTo);
 
+  const timestampMs =
+    typeof ctx.Timestamp === "number" && Number.isFinite(ctx.Timestamp)
+      ? ctx.Timestamp
+      : undefined;
+
   // Keep system metadata strictly free of attacker-controlled strings (sender names, group subjects, etc.).
   // Those belong in the user-role "untrusted context" blocks.
   const payload = {
     schema: "openclaw.inbound_meta.v1",
+    timestamp_ms: timestampMs,
     message_id: messageId,
     message_id_full: messageIdFull && messageIdFull !== messageId ? messageIdFull : undefined,
     sender_id: safeTrim(ctx.SenderId),
