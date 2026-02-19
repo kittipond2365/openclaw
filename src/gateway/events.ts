@@ -1,4 +1,4 @@
-import type { UpdateAvailable } from "../infra/update-startup.js";
+import type { UpdateAvailable } from "../infra/update-types.js";
 
 export const GATEWAY_EVENT_UPDATE_AVAILABLE = "update.available" as const;
 

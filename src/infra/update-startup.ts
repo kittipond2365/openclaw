@@ -7,6 +7,8 @@ import { VERSION } from "../version.js";
 import { resolveOpenClawPackageRoot } from "./openclaw-root.js";
 import { normalizeUpdateChannel, DEFAULT_PACKAGE_CHANNEL } from "./update-channels.js";
 import { compareSemverStrings, resolveNpmChannelTag, checkUpdateStatus } from "./update-check.js";
+import type { UpdateAvailable } from "./update-types.js";
+export type { UpdateAvailable } from "./update-types.js";
 
 type UpdateCheckState = {
   lastCheckedAt?: string;
@@ -14,12 +16,6 @@ type UpdateCheckState = {
   lastNotifiedTag?: string;
   lastAvailableVersion?: string;
   lastAvailableTag?: string;
-};
-
-export type UpdateAvailable = {
-  currentVersion: string;
-  latestVersion: string;
-  channel: string;
 };
 
 let updateAvailableCache: UpdateAvailable | null = null;

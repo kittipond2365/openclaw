@@ -31,6 +31,19 @@ export default defineConfig(() => {
       outDir: path.resolve(here, "../dist/control-ui"),
       emptyOutDir: true,
       sourcemap: true,
+      rollupOptions: {
+        external: [
+          "node:fs",
+          "node:fs/promises",
+          "node:path",
+          "node:os",
+          "node:module",
+          "node:events",
+          "node:child_process",
+          "node:util",
+          "node:crypto",
+        ],
+      },
     },
     server: {
       host: true,
