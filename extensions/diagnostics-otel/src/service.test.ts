@@ -303,7 +303,7 @@ describe("diagnostics-otel service", () => {
     });
 
     const service = createDiagnosticsOtelService();
-    await service.start({
+    const ctx: OpenClawPluginServiceContext = {
       config: {
         diagnostics: {
           enabled: true,
@@ -321,7 +321,9 @@ describe("diagnostics-otel service", () => {
         error: vi.fn(),
         debug: vi.fn(),
       },
-    });
+      stateDir: "/tmp/openclaw-diagnostics-otel-test",
+    };
+    await service.start(ctx);
 
     expect(registeredTransports).toHaveLength(1);
 
@@ -338,7 +340,7 @@ describe("diagnostics-otel service", () => {
     expect(emitCall?.body).toContain("sk-123"); // Keeps prefix
     expect(emitCall?.body).toContain("…"); // Shows truncation
 
-    await service.stop?.();
+    await service.stop?.(ctx);
   });
 
   test("redacts sensitive data from log attributes before export", async () => {
@@ -350,7 +352,7 @@ describe("diagnostics-otel service", () => {
     });
 
     const service = createDiagnosticsOtelService();
-    await service.start({
+    const ctx: OpenClawPluginServiceContext = {
       config: {
         diagnostics: {
           enabled: true,
@@ -368,7 +370,9 @@ describe("diagnostics-otel service", () => {
         error: vi.fn(),
         debug: vi.fn(),
       },
-    });
+      stateDir: "/tmp/openclaw-diagnostics-otel-test",
+    };
+    await service.start(ctx);
 
     expect(registeredTransports).toHaveLength(1);
 
@@ -388,6 +392,6 @@ describe("diagnostics-otel service", () => {
       expect(tokenAttr).toContain("…"); // Shows truncation
     }
 
-    await service.stop?.();
+    await service.stop?.(ctx);
   });
 });
