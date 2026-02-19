@@ -49,6 +49,7 @@ import {
 import { resolveAgentRoute } from "../../routing/resolve-route.js";
 import { buildUntrustedChannelMetadata } from "../../security/channel-metadata.js";
 import { chunkItems } from "../../utils/chunk-items.js";
+import { withTimeout } from "../../utils/with-timeout.js";
 import { loadWebMedia } from "../../web/media.js";
 import { chunkDiscordTextWithMode } from "../chunk.js";
 import {
@@ -406,7 +407,7 @@ function resolveDiscordModelPickerCurrentModel(params: {
     const storePath = resolveStorePath(params.cfg.session?.store, {
       agentId: params.route.agentId,
     });
-    const sessionStore = loadSessionStore(storePath);
+    const sessionStore = loadSessionStore(storePath, { skipCache: true });
     const sessionEntry = sessionStore[params.route.sessionKey];
     const override = resolveStoredModelOverride({
       sessionEntry,
@@ -708,7 +709,6 @@ async function handleDiscordModelPickerInteraction(
       });
       modelRef = provider && selectedModel ? `${provider}/${selectedModel}` : null;
     }
-
     const parsedModelRef = modelRef ? splitDiscordModelRef(modelRef) : null;
     if (
       !parsedModelRef ||
@@ -738,38 +738,46 @@ async function handleDiscordModelPickerInteraction(
       return;
     }
 
-    const updated = await safeDiscordInteractionCall("model picker update", () =>
+    const updateResult = await safeDiscordInteractionCall("model picker update", () =>
       interaction.update(
         buildDiscordModelPickerNoticePayload(`Applying model change to ${resolvedModelRef}...`),
       ),
     );
-    if (!updated) {
+    if (updateResult === null) {
       return;
     }
 
+    let dispatchTimedOut = false;
     try {
-      await dispatchDiscordCommandInteraction({
-        interaction,
-        prompt: selectionCommand.prompt,
-        command: selectionCommand.command,
-        commandArgs: selectionCommand.args,
-        cfg: ctx.cfg,
-        discordConfig: ctx.discordConfig,
-        accountId: ctx.accountId,
-        sessionPrefix: ctx.sessionPrefix,
-        preferFollowUp: true,
-        suppressReplies: true,
-      });
-    } catch {
-      await safeDiscordInteractionCall("model picker follow-up", () =>
-        interaction.followUp({
-          ...buildDiscordModelPickerNoticePayload(
-            `❌ Failed to apply ${resolvedModelRef}. Try /model ${resolvedModelRef} directly.`,
-          ),
-          ephemeral: true,
+      await withTimeout(
+        dispatchDiscordCommandInteraction({
+          interaction,
+          prompt: selectionCommand.prompt,
+          command: selectionCommand.command,
+          commandArgs: selectionCommand.args,
+          cfg: ctx.cfg,
+          discordConfig: ctx.discordConfig,
+          accountId: ctx.accountId,
+          sessionPrefix: ctx.sessionPrefix,
+          preferFollowUp: true,
+          suppressReplies: true,
         }),
+        12000,
       );
-      return;
+    } catch (error) {
+      if (error instanceof Error && error.message === "timeout") {
+        dispatchTimedOut = true;
+      } else {
+        await safeDiscordInteractionCall("model picker follow-up", () =>
+          interaction.followUp({
+            ...buildDiscordModelPickerNoticePayload(
+              `❌ Failed to apply ${resolvedModelRef}. Try /model ${resolvedModelRef} directly.`,
+            ),
+            ephemeral: true,
+          }),
+        );
+        return;
+      }
     }
 
     const effectiveModelRef = resolveDiscordModelPickerCurrentModel({
@@ -778,6 +786,12 @@ async function handleDiscordModelPickerInteraction(
       data: pickerData,
     });
     const persisted = effectiveModelRef === resolvedModelRef;
+
+    if (!persisted && !dispatchTimedOut) {
+      console.warn(
+        `discord: model picker override mismatch — expected ${resolvedModelRef} but read ${effectiveModelRef} from session key ${route.sessionKey}`,
+      );
+    }
 
     if (persisted) {
       await recordDiscordModelPickerRecentModel({
@@ -792,7 +806,9 @@ async function handleDiscordModelPickerInteraction(
         ...buildDiscordModelPickerNoticePayload(
           persisted
             ? `✅ Model set to ${resolvedModelRef}.`
-            : `⚠️ Tried to set ${resolvedModelRef}, but current model is ${effectiveModelRef}.`,
+            : dispatchTimedOut
+              ? `⏳ Model change to ${resolvedModelRef} is still processing. Check /status in a few seconds.`
+              : `⚠️ Tried to set ${resolvedModelRef}, but current model is ${effectiveModelRef}.`,
         ),
         ephemeral: true,
       }),
@@ -851,13 +867,13 @@ async function handleDiscordCommandArgInteraction(
     );
     return;
   }
-  const updated = await safeDiscordInteractionCall("command arg update", () =>
+  const argUpdateResult = await safeDiscordInteractionCall("command arg update", () =>
     interaction.update({
       content: `✅ Selected ${parsed.value}.`,
       components: [],
     }),
   );
-  if (!updated) {
+  if (argUpdateResult === null) {
     return;
   }
   const commandArgs = createCommandArgsWithValue({

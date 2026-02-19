@@ -37,7 +37,16 @@ export const DISCORD_MODEL_PICKER_MODEL_PAGE_SIZE = DISCORD_COMPONENT_MAX_SELECT
 const DISCORD_PROVIDER_BUTTON_LABEL_MAX_CHARS = 18;
 
 const COMMAND_CONTEXTS = ["model", "models"] as const;
-const PICKER_ACTIONS = ["open", "provider", "model", "submit", "nav", "back", "reset"] as const;
+const PICKER_ACTIONS = [
+  "open",
+  "provider",
+  "model",
+  "submit",
+  "quick",
+  "nav",
+  "back",
+  "reset",
+] as const;
 const PICKER_VIEWS = ["providers", "models"] as const;
 
 export type DiscordModelPickerCommandContext = (typeof COMMAND_CONTEXTS)[number];
@@ -51,7 +60,9 @@ export type DiscordModelPickerState = {
   userId: string;
   provider?: string;
   page: number;
+  providerPage?: number;
   modelIndex?: number;
+  recentSlot?: number;
 };
 
 export type DiscordModelPickerProviderItem = {
@@ -122,6 +133,7 @@ export type DiscordModelPickerModelViewParams = {
   currentModel?: string;
   pendingModel?: string;
   pendingModelIndex?: number;
+  quickModels?: string[];
   layout?: DiscordModelPickerLayout;
 };
 
@@ -170,7 +182,7 @@ function parseRawPage(value: unknown): number {
   return 1;
 }
 
-function parseRawModelIndex(value: unknown): number | undefined {
+function parseRawPositiveInt(value: unknown): number | undefined {
   if (typeof value !== "string" && typeof value !== "number") {
     return undefined;
   }
@@ -244,6 +256,32 @@ function formatProviderButtonLabel(provider: string): string {
     return provider;
   }
   return `${provider.slice(0, DISCORD_PROVIDER_BUTTON_LABEL_MAX_CHARS - 1)}…`;
+}
+
+function parseModelRef(raw?: string): { provider: string; model: string } | null {
+  const value = raw?.trim();
+  if (!value) {
+    return null;
+  }
+  const slashIndex = value.indexOf("/");
+  if (slashIndex <= 0 || slashIndex >= value.length - 1) {
+    return null;
+  }
+  const provider = normalizeProviderId(value.slice(0, slashIndex));
+  const model = value.slice(slashIndex + 1).trim();
+  if (!provider || !model) {
+    return null;
+  }
+  return { provider, model };
+}
+
+function formatQuickModelButtonLabel(modelRef: string): string {
+  const parsed = parseModelRef(modelRef);
+  const label = parsed ? `${parsed.provider}/${parsed.model}` : modelRef;
+  if (label.length <= 24) {
+    return label;
+  }
+  return `${label.slice(0, 23)}…`;
 }
 
 function chunkProvidersForRows(
@@ -407,11 +445,121 @@ function buildModelRows(params: {
   currentModel?: string;
   pendingModel?: string;
   pendingModelIndex?: number;
+  quickModels?: string[];
 }): DiscordModelPickerRow[] {
   const parsedCurrentModel = parseCurrentModelRef(params.currentModel);
   const parsedPendingModel = parseCurrentModelRef(params.pendingModel);
   const selectedModelRef = parsedPendingModel ?? parsedCurrentModel;
-  const options: APISelectMenuOption[] = params.modelPage.items.map((model) => ({
+  const rows: DiscordModelPickerRow[] = [];
+
+  const quickModels = (params.quickModels ?? [])
+    .map((modelRef) => parseModelRef(modelRef))
+    .filter((entry): entry is { provider: string; model: string } => Boolean(entry))
+    .filter((entry) => params.data.byProvider.get(entry.provider)?.has(entry.model))
+    .slice(0, DISCORD_COMPONENT_MAX_BUTTONS_PER_ROW);
+
+  if (quickModels.length > 0) {
+    rows.push(
+      new Row(
+        quickModels.map((entry, index) =>
+          createModelPickerButton({
+            label: formatQuickModelButtonLabel(`${entry.provider}/${entry.model}`),
+            style:
+              selectedModelRef?.provider === entry.provider &&
+              selectedModelRef.model === entry.model
+                ? ButtonStyle.Primary
+                : ButtonStyle.Secondary,
+            customId: buildDiscordModelPickerCustomId({
+              command: params.command,
+              action: "quick",
+              view: "models",
+              provider: params.modelPage.provider,
+              page: params.modelPage.page,
+              providerPage: params.providerPage,
+              recentSlot: index + 1,
+              userId: params.userId,
+            }),
+          }),
+        ),
+      ),
+    );
+  }
+
+  const providerPage = getDiscordModelPickerProviderPage({
+    data: params.data,
+    page: params.providerPage,
+  });
+  const providerOptions: APISelectMenuOption[] = providerPage.items.map((provider) => ({
+    label: provider.id,
+    value: provider.id,
+    default: provider.id === params.modelPage.provider,
+  }));
+
+  rows.push(
+    new Row([
+      createModelSelect({
+        customId: buildDiscordModelPickerCustomId({
+          command: params.command,
+          action: "provider",
+          view: "models",
+          provider: params.modelPage.provider,
+          page: providerPage.page,
+          providerPage: providerPage.page,
+          userId: params.userId,
+        }),
+        options: providerOptions,
+        placeholder: "Select provider",
+      }),
+    ]),
+  );
+
+  if (providerPage.totalPages > 1) {
+    rows.push(
+      new Row([
+        createModelPickerButton({
+          label: "◀ Providers",
+          disabled: !providerPage.hasPrev,
+          customId: buildDiscordModelPickerCustomId({
+            command: params.command,
+            action: "nav",
+            view: "providers",
+            provider: params.modelPage.provider,
+            page: providerPage.page - 1,
+            providerPage: providerPage.page - 1,
+            userId: params.userId,
+          }),
+        }),
+        createModelPickerButton({
+          label: `Providers ${providerPage.page}/${providerPage.totalPages}`,
+          disabled: true,
+          customId: buildDiscordModelPickerCustomId({
+            command: params.command,
+            action: "open",
+            view: "providers",
+            provider: params.modelPage.provider,
+            page: providerPage.page,
+            providerPage: providerPage.page,
+            userId: params.userId,
+          }),
+        }),
+        createModelPickerButton({
+          label: "Providers ▶",
+          disabled: !providerPage.hasNext,
+          customId: buildDiscordModelPickerCustomId({
+            command: params.command,
+            action: "nav",
+            view: "providers",
+            provider: params.modelPage.provider,
+            page: providerPage.page + 1,
+            providerPage: providerPage.page + 1,
+            userId: params.userId,
+          }),
+        }),
+      ]),
+    );
+  }
+
+  const modelOptions: APISelectMenuOption[] = params.modelPage.items.map((model) => ({
     label: model,
     value: model,
     default: selectedModelRef
@@ -419,20 +567,23 @@ function buildModelRows(params: {
       : false,
   }));
 
-  const selectRow = new Row([
-    createModelSelect({
-      customId: buildDiscordModelPickerCustomId({
-        command: params.command,
-        action: "model",
-        view: "models",
-        provider: params.modelPage.provider,
-        page: params.modelPage.page,
-        userId: params.userId,
+  rows.push(
+    new Row([
+      createModelSelect({
+        customId: buildDiscordModelPickerCustomId({
+          command: params.command,
+          action: "model",
+          view: "models",
+          provider: params.modelPage.provider,
+          page: params.modelPage.page,
+          providerPage: providerPage.page,
+          userId: params.userId,
+        }),
+        options: modelOptions,
+        placeholder: `Select ${params.modelPage.provider} model`,
       }),
-      options,
-      placeholder: `Select ${params.modelPage.provider} model`,
-    }),
-  ]);
+    ]),
+  );
 
   const resolvedDefault = params.data.resolvedDefault;
   const shouldDisableReset =
@@ -446,71 +597,80 @@ function buildModelRows(params: {
     typeof params.pendingModelIndex === "number" &&
     params.pendingModelIndex > 0;
 
-  const navRow = new Row([
-    createModelPickerButton({
-      label: "Back",
-      customId: buildDiscordModelPickerCustomId({
-        command: params.command,
-        action: "back",
-        view: "providers",
-        page: params.providerPage,
-        userId: params.userId,
+  rows.push(
+    new Row([
+      createModelPickerButton({
+        label: "◀ Prev",
+        disabled: !params.modelPage.hasPrev,
+        customId: buildDiscordModelPickerCustomId({
+          command: params.command,
+          action: "nav",
+          view: "models",
+          provider: params.modelPage.provider,
+          page: params.modelPage.page - 1,
+          providerPage: providerPage.page,
+          userId: params.userId,
+        }),
       }),
-    }),
-    createModelPickerButton({
-      label: "◀ Prev",
-      disabled: !params.modelPage.hasPrev,
-      customId: buildDiscordModelPickerCustomId({
-        command: params.command,
-        action: "nav",
-        view: "models",
-        provider: params.modelPage.provider,
-        page: params.modelPage.page - 1,
-        userId: params.userId,
+      createModelPickerButton({
+        label: `Page ${params.modelPage.page}/${params.modelPage.totalPages}`,
+        disabled: true,
+        customId: buildDiscordModelPickerCustomId({
+          command: params.command,
+          action: "open",
+          view: "models",
+          provider: params.modelPage.provider,
+          page: params.modelPage.page,
+          providerPage: providerPage.page,
+          userId: params.userId,
+        }),
       }),
-    }),
-    createModelPickerButton({
-      label: "Next ▶",
-      disabled: !params.modelPage.hasNext,
-      customId: buildDiscordModelPickerCustomId({
-        command: params.command,
-        action: "nav",
-        view: "models",
-        provider: params.modelPage.provider,
-        page: params.modelPage.page + 1,
-        userId: params.userId,
+      createModelPickerButton({
+        label: "Next ▶",
+        disabled: !params.modelPage.hasNext,
+        customId: buildDiscordModelPickerCustomId({
+          command: params.command,
+          action: "nav",
+          view: "models",
+          provider: params.modelPage.provider,
+          page: params.modelPage.page + 1,
+          providerPage: providerPage.page,
+          userId: params.userId,
+        }),
       }),
-    }),
-    createModelPickerButton({
-      label: "Submit",
-      style: ButtonStyle.Primary,
-      disabled: !hasPendingSelection,
-      customId: buildDiscordModelPickerCustomId({
-        command: params.command,
-        action: "submit",
-        view: "models",
-        provider: params.modelPage.provider,
-        page: params.modelPage.page,
-        modelIndex: params.pendingModelIndex,
-        userId: params.userId,
+      createModelPickerButton({
+        label: "Submit",
+        style: ButtonStyle.Primary,
+        disabled: !hasPendingSelection,
+        customId: buildDiscordModelPickerCustomId({
+          command: params.command,
+          action: "submit",
+          view: "models",
+          provider: params.modelPage.provider,
+          page: params.modelPage.page,
+          providerPage: providerPage.page,
+          modelIndex: params.pendingModelIndex,
+          userId: params.userId,
+        }),
       }),
-    }),
-    createModelPickerButton({
-      label: "Reset default",
-      style: ButtonStyle.Secondary,
-      disabled: shouldDisableReset,
-      customId: buildDiscordModelPickerCustomId({
-        command: params.command,
-        action: "reset",
-        view: "models",
-        provider: params.modelPage.provider,
-        page: 1,
-        userId: params.userId,
+      createModelPickerButton({
+        label: "Reset default",
+        style: ButtonStyle.Secondary,
+        disabled: shouldDisableReset,
+        customId: buildDiscordModelPickerCustomId({
+          command: params.command,
+          action: "reset",
+          view: "models",
+          provider: params.modelPage.provider,
+          page: params.modelPage.page,
+          providerPage: providerPage.page,
+          userId: params.userId,
+        }),
       }),
-    }),
-  ]);
+    ]),
+  );
 
-  return [selectRow, navRow];
+  return rows;
 }
 
 /**
@@ -528,7 +688,9 @@ export function buildDiscordModelPickerCustomId(params: {
   userId: string;
   provider?: string;
   page?: number;
+  providerPage?: number;
   modelIndex?: number;
+  recentSlot?: number;
 }): string {
   const userId = params.userId.trim();
   if (!userId) {
@@ -536,10 +698,18 @@ export function buildDiscordModelPickerCustomId(params: {
   }
 
   const page = normalizePage(params.page);
+  const providerPage =
+    typeof params.providerPage === "number" && Number.isFinite(params.providerPage)
+      ? Math.max(1, Math.floor(params.providerPage))
+      : undefined;
   const normalizedProvider = params.provider ? normalizeProviderId(params.provider) : undefined;
   const modelIndex =
     typeof params.modelIndex === "number" && Number.isFinite(params.modelIndex)
       ? Math.max(1, Math.floor(params.modelIndex))
+      : undefined;
+  const recentSlot =
+    typeof params.recentSlot === "number" && Number.isFinite(params.recentSlot)
+      ? Math.max(1, Math.floor(params.recentSlot))
       : undefined;
 
   const parts = [
@@ -552,8 +722,14 @@ export function buildDiscordModelPickerCustomId(params: {
   if (normalizedProvider) {
     parts.push(`p=${encodeCustomIdValue(normalizedProvider)}`);
   }
+  if (providerPage) {
+    parts.push(`pp=${String(providerPage)}`);
+  }
   if (modelIndex) {
     parts.push(`mi=${String(modelIndex)}`);
+  }
+  if (recentSlot) {
+    parts.push(`rs=${String(recentSlot)}`);
   }
 
   const customId = parts.join(";");
@@ -601,7 +777,9 @@ export function parseDiscordModelPickerData(data: ComponentData): DiscordModelPi
   const userId = decodeCustomIdValue(coerceString(data.u));
   const providerRaw = decodeCustomIdValue(coerceString(data.p));
   const page = parseRawPage(data.pg);
-  const modelIndex = parseRawModelIndex(data.mi);
+  const providerPage = parseRawPositiveInt(data.pp);
+  const modelIndex = parseRawPositiveInt(data.mi);
+  const recentSlot = parseRawPositiveInt(data.rs);
 
   if (!isValidCommandContext(command) || !isValidPickerAction(action) || !isValidPickerView(view)) {
     return null;
@@ -621,7 +799,9 @@ export function parseDiscordModelPickerData(data: ComponentData): DiscordModelPi
     userId: trimmedUserId,
     provider,
     page,
+    ...(typeof providerPage === "number" ? { providerPage } : {}),
     ...(typeof modelIndex === "number" ? { modelIndex } : {}),
+    ...(typeof recentSlot === "number" ? { recentSlot } : {}),
   };
 }
 
@@ -757,6 +937,7 @@ export function renderDiscordModelPickerModelsView(
     currentModel: params.currentModel,
     pendingModel: params.pendingModel,
     pendingModelIndex: params.pendingModelIndex,
+    quickModels: params.quickModels,
   });
 
   const defaultModel = `${params.data.resolvedDefault.provider}/${params.data.resolvedDefault.model}`;

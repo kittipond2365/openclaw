@@ -399,30 +399,32 @@ describe("Discord model picker rendering", () => {
     };
 
     const rows = extractContainerRows(payload.components);
-    expect(rows).toHaveLength(2);
+    expect(rows).toHaveLength(3);
 
-    const selectComponent = rows[0]?.components?.find(
+    const providerSelect = rows[0]?.components?.find(
       (component) => component.type === Number(ComponentType.StringSelect),
     );
-    expect(selectComponent).toBeTruthy();
-    expect(selectComponent?.options?.length).toBe(3);
-    expect(selectComponent?.options?.find((option) => option.value === "o3")?.default).toBe(true);
+    expect(providerSelect).toBeTruthy();
+    expect(providerSelect?.options?.length).toBe(2);
+    expect(providerSelect?.options?.find((option) => option.value === "openai")?.default).toBe(
+      true,
+    );
+    const parsedProviderState = parseDiscordModelPickerCustomId(providerSelect?.custom_id ?? "");
+    expect(parsedProviderState?.action).toBe("provider");
 
-    const parsedSelectState = parseDiscordModelPickerCustomId(selectComponent?.custom_id ?? "");
-    expect(parsedSelectState?.action).toBe("model");
-    expect(parsedSelectState?.provider).toBe("openai");
+    const modelSelect = rows[1]?.components?.find(
+      (component) => component.type === Number(ComponentType.StringSelect),
+    );
+    expect(modelSelect).toBeTruthy();
+    expect(modelSelect?.options?.length).toBe(3);
+    expect(modelSelect?.options?.find((option) => option.value === "o3")?.default).toBe(true);
 
-    const navButtons = rows[1]?.components ?? [];
+    const parsedModelSelectState = parseDiscordModelPickerCustomId(modelSelect?.custom_id ?? "");
+    expect(parsedModelSelectState?.action).toBe("model");
+    expect(parsedModelSelectState?.provider).toBe("openai");
+
+    const navButtons = rows[2]?.components ?? [];
     expect(navButtons).toHaveLength(5);
-    const backState = parseDiscordModelPickerCustomId(navButtons[0]?.custom_id ?? "");
-    expect(backState).toEqual({
-      command: "models",
-      action: "back",
-      view: "providers",
-      userId: "42",
-      page: 2,
-      provider: undefined,
-    });
 
     const submitState = parseDiscordModelPickerCustomId(navButtons[3]?.custom_id ?? "");
     expect(submitState?.action).toBe("submit");

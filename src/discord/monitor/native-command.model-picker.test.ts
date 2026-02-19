@@ -197,9 +197,14 @@ describe("Discord model picker interactions", () => {
     expect(dispatchSpy).toHaveBeenCalledTimes(1);
 
     const dispatchCall = dispatchSpy.mock.calls[0]?.[0] as {
-      ctx?: { CommandBody?: string; CommandArgs?: { values?: { model?: string } } };
+      ctx?: {
+        CommandBody?: string;
+        CommandArgs?: { values?: { model?: string } };
+        CommandTargetSessionKey?: string;
+      };
     };
     expect(dispatchCall.ctx?.CommandBody).toBe("/model openai/gpt-4o");
     expect(dispatchCall.ctx?.CommandArgs?.values?.model).toBe("openai/gpt-4o");
+    expect(dispatchCall.ctx?.CommandTargetSessionKey).toBeDefined();
   });
 });
