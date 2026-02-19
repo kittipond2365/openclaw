@@ -1110,6 +1110,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
       storePath,
       sessionKey,
       sessionId: existingSessionId,
+      overrides: {},
     });
 
     registerInternalHook("command:before_reset", (event) => {
