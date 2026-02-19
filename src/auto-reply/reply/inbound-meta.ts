@@ -19,9 +19,7 @@ export function buildInboundMetaSystemPrompt(ctx: TemplateContext): string {
   const chatId = safeTrim(ctx.OriginatingTo);
 
   const timestampMs =
-    typeof ctx.Timestamp === "number" && Number.isFinite(ctx.Timestamp)
-      ? ctx.Timestamp
-      : undefined;
+    typeof ctx.Timestamp === "number" && Number.isFinite(ctx.Timestamp) ? ctx.Timestamp : undefined;
 
   // Keep system metadata strictly free of attacker-controlled strings (sender names, group subjects, etc.).
   // Those belong in the user-role "untrusted context" blocks.
