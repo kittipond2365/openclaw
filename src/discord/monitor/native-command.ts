@@ -815,6 +815,14 @@ async function handleDiscordModelPickerInteraction(
     );
     return;
   }
+
+  if (parsed.action === "cancel") {
+    const displayModel = currentModelRef ?? "default";
+    await safeDiscordInteractionCall("model picker update", () =>
+      interaction.update(buildDiscordModelPickerNoticePayload(`ℹ️ Model kept as ${displayModel}.`)),
+    );
+    return;
+  }
 }
 
 async function handleDiscordCommandArgInteraction(

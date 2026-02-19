@@ -37,7 +37,16 @@ export const DISCORD_MODEL_PICKER_MODEL_PAGE_SIZE = DISCORD_COMPONENT_MAX_SELECT
 const DISCORD_PROVIDER_BUTTON_LABEL_MAX_CHARS = 18;
 
 const COMMAND_CONTEXTS = ["model", "models"] as const;
-const PICKER_ACTIONS = ["open", "provider", "model", "submit", "quick", "back", "reset"] as const;
+const PICKER_ACTIONS = [
+  "open",
+  "provider",
+  "model",
+  "submit",
+  "quick",
+  "back",
+  "reset",
+  "cancel",
+] as const;
 const PICKER_VIEWS = ["providers", "models"] as const;
 
 export type DiscordModelPickerCommandContext = (typeof COMMAND_CONTEXTS)[number];
@@ -533,6 +542,19 @@ function buildModelRows(params: {
           userId: params.userId,
         }),
       }),
+      createModelPickerButton({
+        label: "Cancel",
+        style: ButtonStyle.Secondary,
+        customId: buildDiscordModelPickerCustomId({
+          command: params.command,
+          action: "cancel",
+          view: "models",
+          provider: params.modelPage.provider,
+          page: params.modelPage.page,
+          providerPage: providerPage.page,
+          userId: params.userId,
+        }),
+      }),
     ]),
   );
 
@@ -810,7 +832,7 @@ export function renderDiscordModelPickerModelsView(
 
   return buildRenderedShell({
     layout: params.layout ?? "v2",
-    title: `Model Picker — ${modelPage.provider}`,
+    title: "Model Picker",
     detailLines: [
       formatCurrentModelLine(params.currentModel),
       `Default: ${defaultModel}`,
