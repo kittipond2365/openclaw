@@ -1,3 +1,4 @@
+import path from "node:path";
 import { PassThrough } from "node:stream";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -283,9 +284,9 @@ describe("resolveGatewayLogPaths", () => {
   it("returns default log paths under state dir for local installs", () => {
     const env = { HOME: "/Users/test" };
     const paths = resolveGatewayLogPaths(env);
-    expect(paths.logDir).toBe("/Users/test/.openclaw/logs");
-    expect(paths.stdoutPath).toBe("/Users/test/.openclaw/logs/gateway.log");
-    expect(paths.stderrPath).toBe("/Users/test/.openclaw/logs/gateway.err.log");
+    expect(paths.logDir).toBe(path.join("/Users/test/.openclaw", "logs"));
+    expect(paths.stdoutPath).toBe(path.join("/Users/test/.openclaw/logs", "gateway.log"));
+    expect(paths.stderrPath).toBe(path.join("/Users/test/.openclaw/logs", "gateway.err.log"));
   });
 
   it("falls back to /tmp/openclaw when state dir resolves to /Volumes on macOS", () => {
@@ -315,6 +316,6 @@ describe("resolveGatewayLogPaths", () => {
     state.realpathOverride = "/Users/test/.openclaw";
     const env = { HOME: "/Users/test" };
     const paths = resolveGatewayLogPaths(env);
-    expect(paths.logDir).toBe("/Users/test/.openclaw/logs");
+    expect(paths.logDir).toBe(path.join("/Users/test/.openclaw", "logs"));
   });
 });
