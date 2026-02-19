@@ -105,7 +105,7 @@ type DiscordModelPickerRenderShellParams = {
   title: string;
   detailLines: string[];
   rows: DiscordModelPickerRow[];
-  footer: string;
+  footer?: string;
 };
 
 export type DiscordModelPickerRenderedView = {
@@ -355,8 +355,10 @@ function buildRenderedShell(
   }
   containerComponents.push(new Separator({ divider: true, spacing: "small" }));
   containerComponents.push(...params.rows);
-  containerComponents.push(new Separator({ divider: false, spacing: "small" }));
-  containerComponents.push(new TextDisplay(`-# ${params.footer}`));
+  if (params.footer) {
+    containerComponents.push(new Separator({ divider: false, spacing: "small" }));
+    containerComponents.push(new TextDisplay(`-# ${params.footer}`));
+  }
 
   const container = new Container(containerComponents);
   return {
@@ -839,7 +841,6 @@ export function renderDiscordModelPickerModelsView(
       pendingLine,
     ],
     rows,
-    footer: `${modelPage.totalItems} models available`,
   });
 }
 
