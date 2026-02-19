@@ -60,7 +60,7 @@ describe("config env vars", () => {
       });
     });
   });
-}
+});
 
   describe("lenient mode", () => {
     it("preserves ${VAR} as literal when var is missing and lenient: true", () => {
