@@ -2,13 +2,13 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import type { AuthProfileStore } from "./auth-profiles/types.js";
 import {
   ensureAuthProfileStore,
   isProfileInCooldown,
   isProfileInCooldownForModel,
   markAuthProfileFailure,
 } from "./auth-profiles.js";
+import type { AuthProfileStore } from "./auth-profiles/types.js";
 
 describe("isProfileInCooldownForModel", () => {
   function makeStore(stats: NonNullable<AuthProfileStore["usageStats"]>[string]): AuthProfileStore {
