@@ -128,9 +128,9 @@ describe("compaction-safeguard recent message fallback", () => {
     const section = formatRecentMessagesSection([
       {
         role: "assistant",
-        content: longText,
+        content: [{ type: "text", text: longText }],
         timestamp: Date.now(),
-      },
+      } as unknown as AgentMessage,
     ]);
 
     const line = section
@@ -149,7 +149,7 @@ describe("computeAdaptiveChunkRatio", () => {
   it("returns BASE_CHUNK_RATIO for normal messages", () => {
     // Small messages: 1000 tokens each, well under 10% of context
     const messages: AgentMessage[] = [
-      { role: "user", content: "x".repeat(1000), timestamp: Date.now() },
+      { role: "user", content: [{ type: "text", text: "x".repeat(1000) }], timestamp: Date.now() },
       {
         role: "assistant",
         content: [{ type: "text", text: "y".repeat(1000) }],
@@ -164,7 +164,11 @@ describe("computeAdaptiveChunkRatio", () => {
   it("reduces ratio when average message > 10% of context", () => {
     // Large messages: ~50K tokens each (25% of context)
     const messages: AgentMessage[] = [
-      { role: "user", content: "x".repeat(50_000 * 4), timestamp: Date.now() },
+      {
+        role: "user",
+        content: [{ type: "text", text: "x".repeat(50_000 * 4) }],
+        timestamp: Date.now(),
+      },
       {
         role: "assistant",
         content: [{ type: "text", text: "y".repeat(50_000 * 4) }],
@@ -180,7 +184,11 @@ describe("computeAdaptiveChunkRatio", () => {
   it("respects MIN_CHUNK_RATIO floor", () => {
     // Very large messages that would push ratio below minimum
     const messages: AgentMessage[] = [
-      { role: "user", content: "x".repeat(150_000 * 4), timestamp: Date.now() },
+      {
+        role: "user",
+        content: [{ type: "text", text: "x".repeat(150_000 * 4) }],
+        timestamp: Date.now(),
+      },
     ];
 
     const ratio = computeAdaptiveChunkRatio(messages, CONTEXT_WINDOW);
@@ -195,7 +203,11 @@ describe("computeAdaptiveChunkRatio", () => {
   it("handles single huge message", () => {
     // Single massive message
     const messages: AgentMessage[] = [
-      { role: "user", content: "x".repeat(180_000 * 4), timestamp: Date.now() },
+      {
+        role: "user",
+        content: [{ type: "text", text: "x".repeat(180_000 * 4) }],
+        timestamp: Date.now(),
+      },
     ];
 
     const ratio = computeAdaptiveChunkRatio(messages, CONTEXT_WINDOW);
@@ -210,7 +222,7 @@ describe("isOversizedForSummary", () => {
   it("returns false for small messages", () => {
     const msg: AgentMessage = {
       role: "user",
-      content: "Hello, world!",
+      content: [{ type: "text", text: "Hello, world!" }],
       timestamp: Date.now(),
     };
 
@@ -222,7 +234,7 @@ describe("isOversizedForSummary", () => {
     // After safety margin (1.2x), effective is 144K which is > 100K (50%)
     const msg: AgentMessage = {
       role: "user",
-      content: "x".repeat(120_000 * 4),
+      content: [{ type: "text", text: "x".repeat(120_000 * 4) }],
       timestamp: Date.now(),
     };
 
@@ -235,7 +247,7 @@ describe("isOversizedForSummary", () => {
     const halfContextChars = (CONTEXT_WINDOW * 0.5) / SAFETY_MARGIN;
     const msg: AgentMessage = {
       role: "user",
-      content: "x".repeat(Math.floor(halfContextChars * 4)),
+      content: [{ type: "text", text: "x".repeat(Math.floor(halfContextChars * 4)) }],
       timestamp: Date.now(),
     };
 
