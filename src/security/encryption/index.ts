@@ -32,3 +32,12 @@ export {
   WORKSPACE_SENSITIVE_FILES,
   writeFileEncrypted,
 } from "./workspace-fs.js";
+export {
+  createEncryptionMeta,
+  isEncryptionConfigured,
+  readEncryptionMeta,
+  writeEncryptionMeta,
+} from "./metadata.js";
+export type { EncryptionMeta } from "./metadata.js";
+export { changePassword, disableEncryption, initEncryption, unlockFromKeychain } from "./setup.js";
+export type { SetupResult } from "./setup.js";
