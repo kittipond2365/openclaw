@@ -991,8 +991,10 @@ describe("gateway server auth/connect", () => {
       ws.close();
 
       ws2 = new WebSocket(`ws://127.0.0.1:${port}`);
-      await new Promise<void>((resolve) => ws2.once("open", resolve));
-      const upgraded = await connectReq(ws2, {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+      await new Promise<void>((resolve) => ws2!.once("open", resolve));
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+      const upgraded = await connectReq(ws2!, {
         token: "secret",
         scopes: ["operator.admin"],
         client: TEST_OPERATOR_CLIENT,
