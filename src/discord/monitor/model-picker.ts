@@ -37,16 +37,7 @@ export const DISCORD_MODEL_PICKER_MODEL_PAGE_SIZE = DISCORD_COMPONENT_MAX_SELECT
 const DISCORD_PROVIDER_BUTTON_LABEL_MAX_CHARS = 18;
 
 const COMMAND_CONTEXTS = ["model", "models"] as const;
-const PICKER_ACTIONS = [
-  "open",
-  "provider",
-  "model",
-  "submit",
-  "quick",
-  "nav",
-  "back",
-  "reset",
-] as const;
+const PICKER_ACTIONS = ["open", "provider", "model", "submit", "quick", "back", "reset"] as const;
 const PICKER_VIEWS = ["providers", "models"] as const;
 
 export type DiscordModelPickerCommandContext = (typeof COMMAND_CONTEXTS)[number];
@@ -393,46 +384,6 @@ function buildProviderRows(params: {
       ),
   );
 
-  if (params.page.totalPages > 1) {
-    rows.push(
-      new Row([
-        createModelPickerButton({
-          label: "◀ Prev",
-          disabled: !params.page.hasPrev,
-          customId: buildDiscordModelPickerCustomId({
-            command: params.command,
-            action: "nav",
-            view: "providers",
-            page: params.page.page - 1,
-            userId: params.userId,
-          }),
-        }),
-        createModelPickerButton({
-          label: `Page ${params.page.page}/${params.page.totalPages}`,
-          disabled: true,
-          customId: buildDiscordModelPickerCustomId({
-            command: params.command,
-            action: "open",
-            view: "providers",
-            page: params.page.page,
-            userId: params.userId,
-          }),
-        }),
-        createModelPickerButton({
-          label: "Next ▶",
-          disabled: !params.page.hasNext,
-          customId: buildDiscordModelPickerCustomId({
-            command: params.command,
-            action: "nav",
-            view: "providers",
-            page: params.page.page + 1,
-            userId: params.userId,
-          }),
-        }),
-      ]),
-    );
-  }
-
   return rows;
 }
 
@@ -513,52 +464,6 @@ function buildModelRows(params: {
     ]),
   );
 
-  if (providerPage.totalPages > 1) {
-    rows.push(
-      new Row([
-        createModelPickerButton({
-          label: "◀ Providers",
-          disabled: !providerPage.hasPrev,
-          customId: buildDiscordModelPickerCustomId({
-            command: params.command,
-            action: "nav",
-            view: "providers",
-            provider: params.modelPage.provider,
-            page: providerPage.page - 1,
-            providerPage: providerPage.page - 1,
-            userId: params.userId,
-          }),
-        }),
-        createModelPickerButton({
-          label: `Providers ${providerPage.page}/${providerPage.totalPages}`,
-          disabled: true,
-          customId: buildDiscordModelPickerCustomId({
-            command: params.command,
-            action: "open",
-            view: "providers",
-            provider: params.modelPage.provider,
-            page: providerPage.page,
-            providerPage: providerPage.page,
-            userId: params.userId,
-          }),
-        }),
-        createModelPickerButton({
-          label: "Providers ▶",
-          disabled: !providerPage.hasNext,
-          customId: buildDiscordModelPickerCustomId({
-            command: params.command,
-            action: "nav",
-            view: "providers",
-            provider: params.modelPage.provider,
-            page: providerPage.page + 1,
-            providerPage: providerPage.page + 1,
-            userId: params.userId,
-          }),
-        }),
-      ]),
-    );
-  }
-
   const modelOptions: APISelectMenuOption[] = params.modelPage.items.map((model) => ({
     label: model,
     value: model,
@@ -599,45 +504,6 @@ function buildModelRows(params: {
 
   rows.push(
     new Row([
-      createModelPickerButton({
-        label: "◀ Prev",
-        disabled: !params.modelPage.hasPrev,
-        customId: buildDiscordModelPickerCustomId({
-          command: params.command,
-          action: "nav",
-          view: "models",
-          provider: params.modelPage.provider,
-          page: params.modelPage.page - 1,
-          providerPage: providerPage.page,
-          userId: params.userId,
-        }),
-      }),
-      createModelPickerButton({
-        label: `Page ${params.modelPage.page}/${params.modelPage.totalPages}`,
-        disabled: true,
-        customId: buildDiscordModelPickerCustomId({
-          command: params.command,
-          action: "open",
-          view: "models",
-          provider: params.modelPage.provider,
-          page: params.modelPage.page,
-          providerPage: providerPage.page,
-          userId: params.userId,
-        }),
-      }),
-      createModelPickerButton({
-        label: "Next ▶",
-        disabled: !params.modelPage.hasNext,
-        customId: buildDiscordModelPickerCustomId({
-          command: params.command,
-          action: "nav",
-          view: "models",
-          provider: params.modelPage.provider,
-          page: params.modelPage.page + 1,
-          providerPage: providerPage.page,
-          userId: params.userId,
-        }),
-      }),
       createModelPickerButton({
         label: "Submit",
         style: ButtonStyle.Primary,
@@ -883,10 +749,7 @@ export function renderDiscordModelPickerProvidersView(
     title: "Model Picker",
     detailLines,
     rows,
-    footer:
-      page.totalPages > 1
-        ? `Providers page ${page.page}/${page.totalPages}`
-        : `All ${page.totalItems} providers shown`,
+    footer: `All ${page.totalItems} providers shown`,
   });
 }
 
@@ -954,7 +817,7 @@ export function renderDiscordModelPickerModelsView(
       pendingLine,
     ],
     rows,
-    footer: `Models page ${modelPage.page}/${modelPage.totalPages} (${modelPage.totalItems} total)`,
+    footer: `${modelPage.totalItems} models available`,
   });
 }
 

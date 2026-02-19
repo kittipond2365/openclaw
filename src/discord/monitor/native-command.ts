@@ -815,25 +815,6 @@ async function handleDiscordModelPickerInteraction(
     );
     return;
   }
-
-  const provider = parsed.provider ?? pickerData.resolvedDefault.provider;
-  const modelPage = parsed.view === "models" ? parsed.page : 1;
-  const providerPage = parsed.view === "providers" ? parsed.page : (parsed.providerPage ?? 1);
-
-  const rendered = renderDiscordModelPickerModelsView({
-    command: parsed.command,
-    userId: parsed.userId,
-    data: pickerData,
-    provider,
-    page: modelPage,
-    providerPage,
-    currentModel: currentModelRef,
-    quickModels,
-  });
-
-  await safeDiscordInteractionCall("model picker update", () =>
-    interaction.update(toDiscordModelPickerMessagePayload(rendered)),
-  );
 }
 
 async function handleDiscordCommandArgInteraction(

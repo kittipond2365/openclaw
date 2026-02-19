@@ -94,7 +94,7 @@ describe("Discord model picker custom_id", () => {
   it("parses component data payloads", () => {
     const parsed = parseDiscordModelPickerData({
       cmd: "model",
-      act: "nav",
+      act: "back",
       view: "providers",
       u: "42",
       p: "anthropic",
@@ -103,7 +103,7 @@ describe("Discord model picker custom_id", () => {
 
     expect(parsed).toEqual({
       command: "model",
-      action: "nav",
+      action: "back",
       view: "providers",
       userId: "42",
       provider: "anthropic",
@@ -327,7 +327,7 @@ describe("Discord model picker rendering", () => {
     ).toBe(false);
   });
 
-  it("renders provider navigation controls when provider count exceeds one page", () => {
+  it("does not render navigation buttons even when provider count exceeds one page", () => {
     const entries: Record<string, string[]> = {};
     for (let i = 1; i <= DISCORD_MODEL_PICKER_PROVIDER_SINGLE_PAGE_MAX + 4; i += 1) {
       entries[`provider-${String(i).padStart(2, "0")}`] = [`model-${i}`];
@@ -348,13 +348,13 @@ describe("Discord model picker rendering", () => {
     const rows = extractContainerRows(payload.components);
     expect(rows.length).toBeGreaterThan(0);
 
-    const navRow = rows.at(-1);
-    const navButtons = navRow?.components ?? [];
-    expect(navButtons).toHaveLength(3);
-
-    const parsedNavState = parseDiscordModelPickerCustomId(navButtons[2]?.custom_id ?? "");
-    expect(parsedNavState?.action).toBe("nav");
-    expect(parsedNavState?.view).toBe("providers");
+    const allButtons = rows.flatMap((row) => row.components ?? []);
+    expect(
+      allButtons.some((component) => {
+        const parsed = parseDiscordModelPickerCustomId(component.custom_id ?? "");
+        return parsed?.action === "nav";
+      }),
+    ).toBe(false);
   });
 
   it("supports classic fallback rendering with content + action rows", () => {
@@ -424,14 +424,14 @@ describe("Discord model picker rendering", () => {
     expect(parsedModelSelectState?.provider).toBe("openai");
 
     const navButtons = rows[2]?.components ?? [];
-    expect(navButtons).toHaveLength(5);
+    expect(navButtons).toHaveLength(2);
 
-    const submitState = parseDiscordModelPickerCustomId(navButtons[3]?.custom_id ?? "");
+    const submitState = parseDiscordModelPickerCustomId(navButtons[0]?.custom_id ?? "");
     expect(submitState?.action).toBe("submit");
     expect(submitState?.provider).toBe("openai");
     expect(submitState?.modelIndex).toBe(3);
 
-    const resetState = parseDiscordModelPickerCustomId(navButtons[4]?.custom_id ?? "");
+    const resetState = parseDiscordModelPickerCustomId(navButtons[1]?.custom_id ?? "");
     expect(resetState?.action).toBe("reset");
     expect(resetState?.provider).toBe("openai");
   });

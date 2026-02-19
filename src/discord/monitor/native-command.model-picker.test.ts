@@ -119,7 +119,7 @@ describe("Discord model picker interactions", () => {
 
     const data: PickerButtonData = {
       cmd: "model",
-      act: "nav",
+      act: "back",
       view: "providers",
       u: "owner",
       pg: "1",
