@@ -68,8 +68,8 @@ export function vectorDimsForModel(model: string, configDimensions?: number): nu
   if (!dims) {
     throw new Error(
       `Unknown embedding model: ${model}. ` +
-      `Either use a known model (${Object.keys(EMBEDDING_DIMENSIONS).join(", ")}) ` +
-      `or specify embedding.dimensions in config.`,
+        `Either use a known model (${Object.keys(EMBEDDING_DIMENSIONS).join(", ")}) ` +
+        `or specify embedding.dimensions in config.`,
     );
   }
   return dims;
