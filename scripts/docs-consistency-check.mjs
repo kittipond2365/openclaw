@@ -37,7 +37,7 @@ const channelDocSlugs = fs
   .map((entry) => entry.name.replace(/\.md$/, ""))
   .filter((slug) => slug !== "index")
   .map((slug) => `channels/${slug}`)
-  .sort();
+  .toSorted();
 
 const missingChannelPages = channelDocSlugs.filter((slug) => !navPages.has(slug));
 
@@ -45,7 +45,7 @@ const extensionDirs = fs
   .readdirSync(EXTENSIONS_DIR, { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
-  .sort();
+  .toSorted();
 
 // Only enforce mapping for real plugin extensions.
 const pluginExtensions = extensionDirs.filter((name) =>
