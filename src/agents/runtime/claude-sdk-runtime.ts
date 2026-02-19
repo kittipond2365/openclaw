@@ -10,10 +10,13 @@
  */
 
 import type {
-  CreateSdkMcpServerOptions,
   McpServerConfig,
   McpSdkServerConfigWithInstance,
+  createSdkMcpServer,
 } from "@anthropic-ai/claude-agent-sdk";
+
+// Inferred type for createSdkMcpServer options (not exported from SDK)
+type CreateSdkMcpServerOptions = Parameters<typeof createSdkMcpServer>[0];
 import { fromClaudeSdkMessage } from "./event-bridge.js";
 import type {
   AgentRuntime,
