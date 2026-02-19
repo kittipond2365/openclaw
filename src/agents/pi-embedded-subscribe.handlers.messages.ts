@@ -192,7 +192,7 @@ export function handleMessageUpdate(
   }
 
   if (!chunk) {
-    const fallbackText = extractAssistantText(msg as Parameters<typeof extractAssistantText>[0]);
+    const fallbackText = extractAssistantText(msg);
     if (fallbackText) {
       if (fallbackText.startsWith(ctx.state.deltaBuffer)) {
         chunk = fallbackText.slice(ctx.state.deltaBuffer.length);
