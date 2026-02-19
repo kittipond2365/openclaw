@@ -17,6 +17,7 @@ import {
   parseDiscordModelPickerData,
   renderDiscordModelPickerModelsView,
   renderDiscordModelPickerProvidersView,
+  renderDiscordModelPickerRecentsView,
   toDiscordModelPickerMessagePayload,
 } from "./model-picker.js";
 
@@ -464,5 +465,168 @@ describe("Discord model picker rendering", () => {
     expect(state?.action).toBe("back");
     expect(state?.view).toBe("providers");
     expect(state?.page).toBe(3);
+  });
+
+  it("shows Recents button when quickModels are provided", () => {
+    const data = createModelsProviderData({
+      openai: ["gpt-4.1", "gpt-4o"],
+      anthropic: ["claude-sonnet-4-5"],
+    });
+
+    const rendered = renderDiscordModelPickerModelsView({
+      command: "model",
+      userId: "42",
+      data,
+      provider: "openai",
+      page: 1,
+      providerPage: 1,
+      currentModel: "openai/gpt-4o",
+      quickModels: ["openai/gpt-4o", "anthropic/claude-sonnet-4-5"],
+    });
+
+    const payload = serializePayload(toDiscordModelPickerMessagePayload(rendered)) as {
+      components?: SerializedComponent[];
+    };
+
+    const rows = extractContainerRows(payload.components);
+    const buttonRow = rows[2];
+    const buttons = buttonRow?.components ?? [];
+    expect(buttons).toHaveLength(4);
+
+    const favoritesState = parseDiscordModelPickerCustomId(buttons[2]?.custom_id ?? "");
+    expect(favoritesState?.action).toBe("recents");
+    expect(favoritesState?.view).toBe("recents");
+  });
+
+  it("omits Recents button when no quickModels", () => {
+    const data = createModelsProviderData({
+      openai: ["gpt-4.1", "gpt-4o"],
+    });
+
+    const rendered = renderDiscordModelPickerModelsView({
+      command: "model",
+      userId: "42",
+      data,
+      provider: "openai",
+      page: 1,
+      providerPage: 1,
+      currentModel: "openai/gpt-4o",
+    });
+
+    const payload = serializePayload(toDiscordModelPickerMessagePayload(rendered)) as {
+      components?: SerializedComponent[];
+    };
+
+    const rows = extractContainerRows(payload.components);
+    const buttonRow = rows[2];
+    const buttons = buttonRow?.components ?? [];
+    expect(buttons).toHaveLength(3);
+
+    const allActions = buttons.map(
+      (b) => parseDiscordModelPickerCustomId(b?.custom_id ?? "")?.action,
+    );
+    expect(allActions).not.toContain("recents");
+  });
+});
+
+describe("Discord model picker recents view", () => {
+  it("renders one button per model with back button after divider", () => {
+    const data = createModelsProviderData({
+      openai: ["gpt-4.1", "gpt-4o"],
+      anthropic: ["claude-sonnet-4-5"],
+    });
+
+    // Default is openai/gpt-4.1 (first key in entries).
+    // Neither quickModel matches, so no deduping — 1 default + 2 recents + 1 back = 4 rows.
+    const rendered = renderDiscordModelPickerRecentsView({
+      command: "model",
+      userId: "42",
+      data,
+      quickModels: ["openai/gpt-4o", "anthropic/claude-sonnet-4-5"],
+      currentModel: "openai/gpt-4o",
+    });
+
+    const payload = serializePayload(toDiscordModelPickerMessagePayload(rendered)) as {
+      components?: SerializedComponent[];
+    };
+
+    const rows = extractContainerRows(payload.components);
+    expect(rows).toHaveLength(4);
+
+    // First row: default model button (slot 1).
+    const defaultBtn = rows[0]?.components?.[0];
+    expect(defaultBtn?.type).toBe(ComponentType.Button);
+    const defaultState = parseDiscordModelPickerCustomId(defaultBtn?.custom_id ?? "");
+    expect(defaultState?.action).toBe("submit");
+    expect(defaultState?.view).toBe("recents");
+    expect(defaultState?.recentSlot).toBe(1);
+
+    // Second row: first recent (slot 2).
+    const recentBtn1 = rows[1]?.components?.[0];
+    const recentState1 = parseDiscordModelPickerCustomId(recentBtn1?.custom_id ?? "");
+    expect(recentState1?.recentSlot).toBe(2);
+
+    // Third row: second recent (slot 3).
+    const recentBtn2 = rows[2]?.components?.[0];
+    const recentState2 = parseDiscordModelPickerCustomId(recentBtn2?.custom_id ?? "");
+    expect(recentState2?.recentSlot).toBe(3);
+
+    // Fourth row (after divider): Back button.
+    const backBtn = rows[3]?.components?.[0];
+    const backState = parseDiscordModelPickerCustomId(backBtn?.custom_id ?? "");
+    expect(backState?.action).toBe("back");
+    expect(backState?.view).toBe("models");
+  });
+
+  it("includes (default) suffix on default model button label", () => {
+    const data = createModelsProviderData({
+      openai: ["gpt-4o"],
+    });
+
+    const rendered = renderDiscordModelPickerRecentsView({
+      command: "model",
+      userId: "42",
+      data,
+      quickModels: ["openai/gpt-4o"],
+      currentModel: "openai/gpt-4o",
+    });
+
+    const payload = serializePayload(toDiscordModelPickerMessagePayload(rendered)) as {
+      components?: SerializedComponent[];
+    };
+
+    const rows = extractContainerRows(payload.components);
+    const defaultBtn = rows[0]?.components?.[0] as { label?: string };
+    expect(defaultBtn?.label).toContain("(default)");
+  });
+
+  it("deduplicates recents that match the default model", () => {
+    const data = createModelsProviderData({
+      openai: ["gpt-4o"],
+      anthropic: ["claude-sonnet-4-5"],
+    });
+    // Default is openai/gpt-4o (first key). quickModels contains the default.
+    const rendered = renderDiscordModelPickerRecentsView({
+      command: "model",
+      userId: "42",
+      data,
+      quickModels: ["openai/gpt-4o", "anthropic/claude-sonnet-4-5"],
+      currentModel: "openai/gpt-4o",
+    });
+
+    const payload = serializePayload(toDiscordModelPickerMessagePayload(rendered)) as {
+      components?: SerializedComponent[];
+    };
+
+    const rows = extractContainerRows(payload.components);
+    // 1 default + 1 deduped recent + 1 back = 3 rows (openai/gpt-4o not shown twice)
+    expect(rows).toHaveLength(3);
+
+    const defaultBtn = rows[0]?.components?.[0] as { label?: string };
+    expect(defaultBtn?.label).toContain("openai/gpt-4o");
+    expect(defaultBtn?.label).toContain("(default)");
+
+    const recentBtn = rows[1]?.components?.[0] as { label?: string };
+    expect(recentBtn?.label).toContain("anthropic/claude-sonnet-4-5");
   });
 });

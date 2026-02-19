@@ -73,6 +73,7 @@ import {
   loadDiscordModelPickerData,
   parseDiscordModelPickerData,
   renderDiscordModelPickerModelsView,
+  renderDiscordModelPickerRecentsView,
   toDiscordModelPickerMessagePayload,
   type DiscordModelPickerCommandContext,
 } from "./model-picker.js";
@@ -618,6 +619,47 @@ async function handleDiscordModelPickerInteraction(
     limit: 5,
   });
 
+  if (parsed.action === "recents") {
+    const rendered = renderDiscordModelPickerRecentsView({
+      command: parsed.command,
+      userId: parsed.userId,
+      data: pickerData,
+      quickModels,
+      currentModel: currentModelRef,
+      provider: parsed.provider,
+      page: parsed.page,
+      providerPage: parsed.providerPage,
+    });
+
+    await safeDiscordInteractionCall("model picker update", () =>
+      interaction.update(toDiscordModelPickerMessagePayload(rendered)),
+    );
+    return;
+  }
+
+  if (parsed.action === "back" && parsed.view === "models") {
+    const provider =
+      parsed.provider ??
+      splitDiscordModelRef(currentModelRef ?? "")?.provider ??
+      pickerData.resolvedDefault.provider;
+
+    const rendered = renderDiscordModelPickerModelsView({
+      command: parsed.command,
+      userId: parsed.userId,
+      data: pickerData,
+      provider,
+      page: parsed.page ?? 1,
+      providerPage: parsed.providerPage ?? 1,
+      currentModel: currentModelRef,
+      quickModels,
+    });
+
+    await safeDiscordInteractionCall("model picker update", () =>
+      interaction.update(toDiscordModelPickerMessagePayload(rendered)),
+    );
+    return;
+  }
+
   if (parsed.action === "provider") {
     const selectedProvider = resolveModelPickerSelectionValue(interaction) ?? parsed.provider;
     if (!selectedProvider || !pickerData.byProvider.has(selectedProvider)) {
@@ -700,6 +742,15 @@ async function handleDiscordModelPickerInteraction(
     } else if (parsed.action === "quick") {
       const slot = parsed.recentSlot ?? 0;
       modelRef = slot >= 1 ? (quickModels[slot - 1] ?? null) : null;
+    } else if (parsed.view === "recents") {
+      const defaultModelRef = `${pickerData.resolvedDefault.provider}/${pickerData.resolvedDefault.model}`;
+      const dedupedRecents = quickModels.filter((ref) => ref !== defaultModelRef);
+      const slot = parsed.recentSlot ?? 0;
+      if (slot === 1) {
+        modelRef = defaultModelRef;
+      } else if (slot >= 2) {
+        modelRef = dedupedRecents[slot - 2] ?? null;
+      }
     } else {
       const provider = parsed.provider;
       const selectedModel = resolveDiscordModelPickerModelByIndex({

@@ -8,6 +8,7 @@ import type { ModelsProviderData } from "../../auto-reply/reply/commands-models.
 import type { OpenClawConfig } from "../../config/config.js";
 import * as commandRegistryModule from "../../auto-reply/commands-registry.js";
 import * as dispatcherModule from "../../auto-reply/reply/provider-dispatcher.js";
+import * as modelPickerPreferencesModule from "./model-picker-preferences.js";
 import * as modelPickerModule from "./model-picker.js";
 import {
   createDiscordModelPickerFallbackButton,
@@ -206,5 +207,96 @@ describe("Discord model picker interactions", () => {
     expect(dispatchCall.ctx?.CommandBody).toBe("/model openai/gpt-4o");
     expect(dispatchCall.ctx?.CommandArgs?.values?.model).toBe("openai/gpt-4o");
     expect(dispatchCall.ctx?.CommandTargetSessionKey).toBeDefined();
+  });
+
+  it("clicking Recents button renders recents view", async () => {
+    const context = createModelPickerContext();
+    const pickerData = createModelsProviderData({
+      openai: ["gpt-4.1", "gpt-4o"],
+      anthropic: ["claude-sonnet-4-5"],
+    });
+
+    vi.spyOn(modelPickerModule, "loadDiscordModelPickerData").mockResolvedValue(pickerData);
+    vi.spyOn(modelPickerPreferencesModule, "readDiscordModelPickerRecentModels").mockResolvedValue([
+      "openai/gpt-4o",
+      "anthropic/claude-sonnet-4-5",
+    ]);
+
+    const button = createDiscordModelPickerFallbackButton(context);
+    const interaction = createInteraction({ userId: "owner" });
+
+    const data: PickerButtonData = {
+      cmd: "model",
+      act: "recents",
+      view: "recents",
+      u: "owner",
+      p: "openai",
+      pg: "1",
+    };
+
+    await button.run(interaction as unknown as PickerButtonInteraction, data);
+
+    expect(interaction.update).toHaveBeenCalledTimes(1);
+    const updatePayload = interaction.update.mock.calls[0]?.[0];
+    expect(updatePayload).toBeDefined();
+    expect(updatePayload.components).toBeDefined();
+  });
+
+  it("clicking recents model button applies model through /model pipeline", async () => {
+    const context = createModelPickerContext();
+    const pickerData = createModelsProviderData({
+      openai: ["gpt-4.1", "gpt-4o"],
+      anthropic: ["claude-sonnet-4-5"],
+    });
+    const modelCommand: ChatCommandDefinition = {
+      key: "model",
+      nativeName: "model",
+      description: "Switch model",
+      textAliases: ["/model"],
+      acceptsArgs: true,
+      argsParsing: "none" as CommandArgsParsing,
+      scope: "native",
+    };
+
+    vi.spyOn(modelPickerModule, "loadDiscordModelPickerData").mockResolvedValue(pickerData);
+    vi.spyOn(modelPickerPreferencesModule, "readDiscordModelPickerRecentModels").mockResolvedValue([
+      "openai/gpt-4o",
+      "anthropic/claude-sonnet-4-5",
+    ]);
+    vi.spyOn(commandRegistryModule, "findCommandByNativeName").mockImplementation((name) =>
+      name === "model" ? modelCommand : (undefined as never),
+    );
+    vi.spyOn(commandRegistryModule, "listChatCommands").mockReturnValue([modelCommand]);
+    vi.spyOn(commandRegistryModule, "resolveCommandArgMenu").mockReturnValue(null);
+
+    const dispatchSpy = vi
+      .spyOn(dispatcherModule, "dispatchReplyWithDispatcher")
+      .mockResolvedValue({} as never);
+
+    const button = createDiscordModelPickerFallbackButton(context);
+    const submitInteraction = createInteraction({ userId: "owner" });
+    // rs=2 → first deduped recent (default is anthropic/claude-sonnet-4-5, so openai/gpt-4o remains)
+    const submitData: PickerButtonData = {
+      cmd: "model",
+      act: "submit",
+      view: "recents",
+      u: "owner",
+      pg: "1",
+      rs: "2",
+    };
+
+    await button.run(submitInteraction as unknown as PickerButtonInteraction, submitData);
+
+    expect(submitInteraction.update).toHaveBeenCalledTimes(1);
+    expect(dispatchSpy).toHaveBeenCalledTimes(1);
+
+    const dispatchCall = dispatchSpy.mock.calls[0]?.[0] as {
+      ctx?: {
+        CommandBody?: string;
+        CommandArgs?: { values?: { model?: string } };
+      };
+    };
+    expect(dispatchCall.ctx?.CommandBody).toBe("/model openai/gpt-4o");
+    expect(dispatchCall.ctx?.CommandArgs?.values?.model).toBe("openai/gpt-4o");
   });
 });
