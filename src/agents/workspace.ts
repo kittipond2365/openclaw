@@ -4,6 +4,7 @@ import path from "node:path";
 import { resolveRequiredHomeDir } from "../infra/home-dir.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { isCronSessionKey, isSubagentSessionKey } from "../routing/session-key.js";
+import { readFileAutoDecrypt } from "../security/encryption/fs-middleware.js";
 import { resolveUserPath } from "../utils.js";
 import { resolveWorkspaceTemplateDir } from "./workspace-templates.js";
 
@@ -451,7 +452,7 @@ export async function loadWorkspaceBootstrapFiles(dir: string): Promise<Workspac
   const result: WorkspaceBootstrapFile[] = [];
   for (const entry of entries) {
     try {
-      const content = await fs.readFile(entry.filePath, "utf-8");
+      const content = await readFileAutoDecrypt(entry.filePath);
       result.push({
         name: entry.name,
         path: entry.filePath,
@@ -531,7 +532,7 @@ export async function loadExtraBootstrapFiles(
       if (!VALID_BOOTSTRAP_NAMES.has(baseName)) {
         continue;
       }
-      const content = await fs.readFile(realFilePath, "utf-8");
+      const content = await readFileAutoDecrypt(realFilePath);
       result.push({
         name: baseName as WorkspaceBootstrapFileName,
         path: filePath,

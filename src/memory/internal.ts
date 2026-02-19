@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { readFileAutoDecrypt } from "../security/encryption/fs-middleware.js";
 import { runTasksWithConcurrency } from "../utils/run-with-concurrency.js";
 
 export type MemoryFileEntry = {
@@ -153,7 +154,7 @@ export async function buildFileEntry(
   workspaceDir: string,
 ): Promise<MemoryFileEntry> {
   const stat = await fs.stat(absPath);
-  const content = await fs.readFile(absPath, "utf-8");
+  const content = await readFileAutoDecrypt(absPath);
   const hash = hashText(content);
   return {
     path: path.relative(workspaceDir, absPath).replace(/\\/g, "/"),
