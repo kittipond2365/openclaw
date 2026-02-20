@@ -104,4 +104,35 @@ describe("isEncrypted", () => {
   it("returns false for short buffer", () => {
     expect(isEncrypted(Buffer.from("OC"))).toBe(false);
   });
+
+  it("returns false for data that starts with partial magic", () => {
+    // "OCEN" but not full "OCENC\x01"
+    expect(isEncrypted(Buffer.from("OCEN"))).toBe(false);
+    expect(isEncrypted(Buffer.from("OCENC"))).toBe(false);
+  });
+
+  it("returns false for markdown that coincidentally starts with OC", () => {
+    expect(isEncrypted(Buffer.from("OCENC is not a magic header when followed by text"))).toBe(
+      false,
+    );
+  });
+});
+
+describe("security properties", () => {
+  it("ciphertext is longer than plaintext (nonce + tag + magic overhead)", () => {
+    const plaintext = Buffer.from("short");
+    const encrypted = encrypt(plaintext, TEST_KEY);
+    // magic(6) + nonce(12) + ciphertext(>=plaintext) + tag(16) = at least 34 bytes more
+    expect(encrypted.buffer.length).toBeGreaterThan(plaintext.length + 30);
+  });
+
+  it("different keys produce different ciphertext for same input", () => {
+    const plaintext = Buffer.from("same input for both");
+    const key1 = crypto.randomBytes(32);
+    const key2 = crypto.randomBytes(32);
+    const enc1 = encrypt(plaintext, key1);
+    const enc2 = encrypt(plaintext, key2);
+    // Very unlikely to be equal
+    expect(enc1.buffer.equals(enc2.buffer)).toBe(false);
+  });
 });
