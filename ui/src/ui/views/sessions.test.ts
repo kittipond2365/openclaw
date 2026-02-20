@@ -102,7 +102,7 @@ describe("sessions view", () => {
     expect(container.textContent).toContain("Delete is unavailable in dashboard webchat mode.");
     const deleteButton = container.querySelector<HTMLButtonElement>("button.btn.danger");
     expect(deleteButton).toBeTruthy();
-    expect(deleteButton?.disabled).toBe(true);
-    expect(deleteButton?.title).toBe("Delete is unavailable in dashboard webchat mode.");
+    expect(deleteButton!.disabled).toBe(true);
+    expect(deleteButton!.title).toBe("Delete is unavailable in dashboard webchat mode.");
   });
 });
