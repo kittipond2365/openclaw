@@ -16,6 +16,10 @@ const LOG_SUFFIX = ".log";
 const MAX_LOG_AGE_MS = 24 * 60 * 60 * 1000; // 24h
 
 function resolveNodeRequire(): ((id: string) => NodeJS.Require) | null {
+  // Guard: Skip in browser/Vite builds where process is shimmed
+  if (typeof process === "undefined" || !process.getBuiltinModule) {
+    return null;
+  }
   const getBuiltinModule = (
     process as NodeJS.Process & {
       getBuiltinModule?: (id: string) => unknown;
