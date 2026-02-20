@@ -13,7 +13,7 @@ vi.mock("./logger.js", () => ({
 
 type TestMessage = {
   role?: string;
-  content: string | Array<{ type: string; text?: string; cache_control?: { type: string } }>;
+  content?: string | Array<{ type: string; text?: string; cache_control?: { type: string } }>;
 };
 
 function makeMessages(count: number): TestMessage[] {
