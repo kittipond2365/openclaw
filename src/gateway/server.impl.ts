@@ -1,10 +1,14 @@
 import path from "node:path";
+import type { CanvasHostServer } from "../canvas-host/server.js";
+import type { PluginServicesHandle } from "../plugins/services.js";
+import type { RuntimeEnv } from "../runtime.js";
+import type { ControlUiRootState } from "./control-ui.js";
+import type { startBrowserControlServerIfEnabled } from "./server-browser.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { getActiveEmbeddedRunCount } from "../agents/pi-embedded-runner/runs.js";
 import { registerSkillsChangeListener } from "../agents/skills/refresh.js";
 import { initSubagentRegistry } from "../agents/subagent-registry.js";
 import { getTotalPendingReplies } from "../auto-reply/reply/dispatcher-registry.js";
-import type { CanvasHostServer } from "../canvas-host/server.js";
 import { type ChannelId, listChannelPlugins } from "../channels/plugins/index.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { createDefaultDeps } from "../cli/deps.js";
@@ -42,21 +46,18 @@ import { startDiagnosticHeartbeat, stopDiagnosticHeartbeat } from "../logging/di
 import { createSubsystemLogger, runtimeForLogger } from "../logging/subsystem.js";
 import { getGlobalHookRunner, runGlobalGatewayStopSafely } from "../plugins/hook-runner-global.js";
 import { createEmptyPluginRegistry } from "../plugins/registry.js";
-import type { PluginServicesHandle } from "../plugins/services.js";
 import { getTotalQueueSize } from "../process/command-queue.js";
-import type { RuntimeEnv } from "../runtime.js";
+import { bootstrapEncryption, shutdownEncryption } from "../security/encryption/integration.js";
 import { runOnboardingWizard } from "../wizard/onboarding.js";
 import { createAuthRateLimiter, type AuthRateLimiter } from "./auth-rate-limit.js";
 import { startChannelHealthMonitor } from "./channel-health-monitor.js";
 import { startGatewayConfigReloader } from "./config-reload.js";
-import type { ControlUiRootState } from "./control-ui.js";
 import {
   GATEWAY_EVENT_UPDATE_AVAILABLE,
   type GatewayUpdateAvailableEventPayload,
 } from "./events.js";
 import { ExecApprovalManager } from "./exec-approval-manager.js";
 import { NodeRegistry } from "./node-registry.js";
-import type { startBrowserControlServerIfEnabled } from "./server-browser.js";
 import { createChannelManager } from "./server-channels.js";
 import { createAgentEventHandler } from "./server-chat.js";
 import { createGatewayCloseHandler } from "./server-close.js";
@@ -264,6 +265,23 @@ export async function startGatewayServer(
   initSubagentRegistry();
   const defaultAgentId = resolveDefaultAgentId(cfgAtStart);
   const defaultWorkspaceDir = resolveAgentWorkspaceDir(cfgAtStart, defaultAgentId);
+
+  // Bootstrap workspace encryption: load keys from Keychain and re-encrypt
+  // any plaintext files that were written since the last startup.
+  const encryptionResult = await bootstrapEncryption(defaultWorkspaceDir);
+  if (encryptionResult.enabled) {
+    if (encryptionResult.keysLoaded) {
+      log.info("gateway: workspace encryption active");
+      if (encryptionResult.reEncrypted.length > 0) {
+        log.info(
+          `gateway: re-encrypted ${encryptionResult.reEncrypted.length} file(s): ${encryptionResult.reEncrypted.join(", ")}`,
+        );
+      }
+    } else {
+      log.warn(`gateway: ${encryptionResult.error}`);
+    }
+  }
+
   const baseMethods = listGatewayMethods();
   const emptyPluginRegistry = createEmptyPluginRegistry();
   const { pluginRegistry, gatewayMethods: baseGatewayMethods } = minimalTestGateway
@@ -764,6 +782,7 @@ export async function startGatewayServer(
       skillsChangeUnsub();
       authRateLimiter?.dispose();
       channelHealthMonitor?.stop();
+      shutdownEncryption();
       await close(opts);
     },
   };
