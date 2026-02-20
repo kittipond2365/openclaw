@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { expectInboundContextContract } from "../../../test/helpers/inbound-contract.js";
 import type { MsgContext } from "../../auto-reply/templating.js";
-import type { SignalEventHandlerDeps } from "./event-handler.types.js";
+import type { SignalEventHandlerDeps, SignalReactionMessage } from "./event-handler.types.js";
 
 let capturedCtx: MsgContext | undefined;
 let capturedCtxs: MsgContext[] = [];
@@ -50,7 +50,8 @@ function createTestHandler(overrides: Partial<SignalEventHandlerDeps> = {}) {
     deliverReplies: async () => {},
     resolveSignalReactionTargets: () => [],
     // oxlint-disable-next-line typescript/no-explicit-any
-    isSignalReactionMessage: () => false as any,
+    isSignalReactionMessage: (_r?: SignalReactionMessage | null): _r is SignalReactionMessage =>
+      false,
     shouldEmitSignalReactionNotification: () => false,
     buildSignalReactionSystemEventText: () => "reaction",
     ...overrides,
@@ -604,7 +605,8 @@ describe("signal createSignalEventHandler inbound contract", () => {
       deliverReplies: async () => {},
       resolveSignalReactionTargets: () => [],
       // oxlint-disable-next-line typescript/no-explicit-any
-      isSignalReactionMessage: () => false as any,
+      isSignalReactionMessage: (_r?: SignalReactionMessage | null): _r is SignalReactionMessage =>
+        false,
       shouldEmitSignalReactionNotification: () => false,
       buildSignalReactionSystemEventText: () => "reaction",
     });

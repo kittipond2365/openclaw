@@ -167,7 +167,7 @@ describe("signal mention gating", () => {
   it("detects control commands even when text style markers wrap the command", async () => {
     capturedCtx = undefined;
     const handler = createSignalEventHandler(
-      createBaseDeps({
+      createBaseSignalEventHandlerDeps({
         cfg: {
           messages: { inbound: { debounceMs: 0 }, groupChat: { mentionPatterns: ["@bot"] } },
           channels: { signal: { groups: { "*": { requireMention: true } } } },
