@@ -93,3 +93,6 @@ package-lock.json
 
 # Local iOS signing overrides
 apps/ios/LocalSigning.xcconfig
+
+# Workspace encryption metadata (contains salt, generated per-workspace)
+.encryption-meta.json
