@@ -1,8 +1,8 @@
 import type { ChannelOutboundAdapter } from "openclaw/plugin-sdk";
-import type { FeishuConfig } from "./types.js";
 import { sendMediaFeishu } from "./media.js";
 import { getFeishuRuntime } from "./runtime.js";
 import { sendMessageFeishu, sendMarkdownCardFeishu } from "./send.js";
+import type { FeishuConfig } from "./types.js";
 
 export const feishuOutbound: ChannelOutboundAdapter = {
   deliveryMode: "direct",
