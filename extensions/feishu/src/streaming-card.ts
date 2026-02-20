@@ -70,7 +70,12 @@ export class FeishuStreamingSession {
   private updateThrottleMs = 100; // Throttle updates to max 10/sec
   private replyToMessageId?: string;
 
-  constructor(client: Client, creds: Credentials, log?: (msg: string) => void, replyToMessageId?: string) {
+  constructor(
+    client: Client,
+    creds: Credentials,
+    log?: (msg: string) => void,
+    replyToMessageId?: string,
+  ) {
     this.client = client;
     this.creds = creds;
     this.log = log;

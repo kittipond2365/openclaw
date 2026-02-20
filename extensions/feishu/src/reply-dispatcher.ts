@@ -99,7 +99,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
         createFeishuClient(account),
         creds,
         (message) => params.runtime.log?.(`feishu[${account.accountId}] ${message}`),
-        replyToMessageId
+        replyToMessageId,
       );
       try {
         await streaming.start(chatId, resolveReceiveIdType(chatId));
