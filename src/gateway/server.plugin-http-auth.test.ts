@@ -72,6 +72,8 @@ describe("gateway plugin HTTP auth boundary", () => {
       token: "test-token",
       password: undefined,
       allowTailscale: false,
+      trustLocalhost: false,
+      allowedHosts: [],
     };
 
     await withTempConfig({

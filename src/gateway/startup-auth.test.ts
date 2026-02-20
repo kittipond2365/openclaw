@@ -224,6 +224,8 @@ describe("assertHooksTokenSeparateFromGatewayAuth", () => {
           modeSource: "config",
           token: "shared-gateway-token-1234567890",
           allowTailscale: false,
+          trustLocalhost: false,
+          allowedHosts: [],
         },
       }),
     ).toThrow(/hooks\.token must not match gateway auth token/i);
@@ -243,6 +245,8 @@ describe("assertHooksTokenSeparateFromGatewayAuth", () => {
           modeSource: "config",
           password: "pw",
           allowTailscale: false,
+          trustLocalhost: false,
+          allowedHosts: [],
         },
       }),
     ).not.toThrow();
@@ -262,6 +266,8 @@ describe("assertHooksTokenSeparateFromGatewayAuth", () => {
           modeSource: "config",
           token: "shared-gateway-token-1234567890",
           allowTailscale: false,
+          trustLocalhost: false,
+          allowedHosts: [],
         },
       }),
     ).not.toThrow();

@@ -30,12 +30,7 @@ import {
   type AuthRateLimiter,
 } from "../../auth-rate-limit.js";
 import type { GatewayAuthResult, ResolvedGatewayAuth } from "../../auth.js";
-import {
-  authorizeGatewayConnect,
-  isLocalDirectRequest,
-  shouldTrustLocalhost,
-  validateHostHeader,
-} from "../../auth.js";
+import { authorizeGatewayConnect, isLocalDirectRequest, validateHostHeader } from "../../auth.js";
 import {
   buildCanvasScopedHostUrl,
   CANVAS_CAPABILITY_TTL_MS,

@@ -160,6 +160,8 @@ describe("gateway canvas host auth", () => {
       token: "test-token",
       password: undefined,
       allowTailscale: false,
+      trustLocalhost: false,
+      allowedHosts: [],
     };
 
     await withTempConfig({
@@ -274,6 +276,8 @@ describe("gateway canvas host auth", () => {
       token: "test-token",
       password: undefined,
       allowTailscale: false,
+      trustLocalhost: false,
+      allowedHosts: [],
     };
 
     await withTempConfig({
@@ -314,6 +318,8 @@ describe("gateway canvas host auth", () => {
       token: "test-token",
       password: undefined,
       allowTailscale: false,
+      trustLocalhost: false,
+      allowedHosts: [],
     };
 
     await withTempConfig({
@@ -391,6 +397,8 @@ describe("gateway canvas host auth", () => {
       token: "test-token",
       password: undefined,
       allowTailscale: false,
+      trustLocalhost: false,
+      allowedHosts: [],
     };
 
     await withTempConfig({

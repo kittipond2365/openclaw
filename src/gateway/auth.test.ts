@@ -147,7 +147,7 @@ describe("gateway auth", () => {
 
   it("allows explicit auth mode none", async () => {
     const res = await authorizeGatewayConnect({
-      auth: { mode: "none", allowTailscale: false },
+      auth: { mode: "none", allowTailscale: false, trustLocalhost: false, allowedHosts: [] },
       connectAuth: null,
     });
     expect(res.ok).toBe(true);
@@ -262,7 +262,13 @@ describe("gateway auth", () => {
   it("uses proxy-aware request client IP by default for rate-limit checks", async () => {
     const limiter = createLimiterSpy();
     const res = await authorizeGatewayConnect({
-      auth: { mode: "token", token: "secret", allowTailscale: false },
+      auth: {
+        mode: "token",
+        token: "secret",
+        allowTailscale: false,
+        trustLocalhost: false,
+        allowedHosts: [],
+      },
       connectAuth: { token: "wrong" },
       req: {
         socket: { remoteAddress: "127.0.0.1" },
@@ -281,7 +287,13 @@ describe("gateway auth", () => {
   it("passes custom rate-limit scope to limiter operations", async () => {
     const limiter = createLimiterSpy();
     const res = await authorizeGatewayConnect({
-      auth: { mode: "password", password: "secret", allowTailscale: false },
+      auth: {
+        mode: "password",
+        password: "secret",
+        allowTailscale: false,
+        trustLocalhost: false,
+        allowedHosts: [],
+      },
       connectAuth: { password: "wrong" },
       rateLimiter: limiter,
       rateLimitScope: "custom-scope",
@@ -313,6 +325,8 @@ describe("trusted-proxy auth", () => {
         mode: "trusted-proxy",
         allowTailscale: false,
         trustedProxy: trustedProxyConfig,
+        trustLocalhost: false,
+        allowedHosts: ["gateway.local"],
       },
       connectAuth: null,
       trustedProxies: options?.trustedProxies ?? ["10.0.0.1"],
@@ -379,6 +393,8 @@ describe("trusted-proxy auth", () => {
       auth: {
         mode: "trusted-proxy",
         allowTailscale: false,
+        trustLocalhost: false,
+        allowedHosts: ["gateway.local"],
         trustedProxy: {
           userHeader: "x-forwarded-user",
           allowUsers: ["admin@example.com", "nick@example.com"],
@@ -398,6 +414,8 @@ describe("trusted-proxy auth", () => {
       auth: {
         mode: "trusted-proxy",
         allowTailscale: false,
+        trustLocalhost: false,
+        allowedHosts: ["gateway.local"],
         trustedProxy: {
           userHeader: "x-forwarded-user",
           allowUsers: ["admin@example.com", "nick@example.com"],
@@ -430,6 +448,8 @@ describe("trusted-proxy auth", () => {
       auth: {
         mode: "trusted-proxy",
         allowTailscale: false,
+        trustLocalhost: false,
+        allowedHosts: ["gateway.local"],
       },
       headers: {
         "x-forwarded-user": "nick@example.com",
@@ -445,6 +465,8 @@ describe("trusted-proxy auth", () => {
       auth: {
         mode: "trusted-proxy",
         allowTailscale: false,
+        trustLocalhost: false,
+        allowedHosts: ["gateway.local"],
         trustedProxy: {
           userHeader: "x-pomerium-claim-email",
           requiredHeaders: ["x-pomerium-jwt-assertion"],
@@ -468,6 +490,8 @@ describe("trusted-proxy auth", () => {
       auth: {
         mode: "trusted-proxy",
         allowTailscale: false,
+        trustLocalhost: false,
+        allowedHosts: ["gateway.local"],
         trustedProxy: {
           userHeader: "x-forwarded-user",
         },

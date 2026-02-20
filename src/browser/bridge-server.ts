@@ -24,9 +24,6 @@ export type BrowserBridge = {
   state: BrowserServerState;
 };
 
-/** Default allowed Host header values for DNS rebinding protection. */
-const DEFAULT_ALLOWED_HOSTS = ["localhost", "127.0.0.1", "::1"];
-
 export async function startBrowserBridgeServer(params: {
   resolved: ResolvedBrowserConfig;
   host?: string;
