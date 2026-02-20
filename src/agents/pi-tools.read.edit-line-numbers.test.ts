@@ -14,8 +14,15 @@ line 6`;
     const mockBridge: SandboxFsBridge = {
       readFile: vi.fn(async () => Buffer.from(testContent, "utf-8")),
       writeFile: vi.fn(async () => {}),
-      stat: vi.fn(async () => ({ isFile: () => true, isDirectory: () => false })),
+      stat: vi.fn(async () => ({ type: "file" as const, size: 100, mtimeMs: Date.now() })),
       mkdirp: vi.fn(async () => {}),
+      resolvePath: vi.fn(({ filePath }) => ({
+        hostPath: filePath,
+        relativePath: filePath,
+        containerPath: filePath,
+      })),
+      remove: vi.fn(async () => {}),
+      rename: vi.fn(async () => {}),
     };
 
     const tool = createSandboxedEditTool({
@@ -44,8 +51,15 @@ function test() {
     const mockBridge: SandboxFsBridge = {
       readFile: vi.fn(async () => Buffer.from(testContent, "utf-8")),
       writeFile: vi.fn(async () => {}),
-      stat: vi.fn(async () => ({ isFile: () => true, isDirectory: () => false })),
+      stat: vi.fn(async () => ({ type: "file" as const, size: 100, mtimeMs: Date.now() })),
       mkdirp: vi.fn(async () => {}),
+      resolvePath: vi.fn(({ filePath }) => ({
+        hostPath: filePath,
+        relativePath: filePath,
+        containerPath: filePath,
+      })),
+      remove: vi.fn(async () => {}),
+      rename: vi.fn(async () => {}),
     };
 
     const tool = createSandboxedEditTool({
@@ -79,8 +93,15 @@ function test() {
     const mockBridge: SandboxFsBridge = {
       readFile: vi.fn(async () => Buffer.from(testContent, "utf-8")),
       writeFile: vi.fn(async () => {}),
-      stat: vi.fn(async () => ({ isFile: () => true, isDirectory: () => false })),
+      stat: vi.fn(async () => ({ type: "file" as const, size: 100, mtimeMs: Date.now() })),
       mkdirp: vi.fn(async () => {}),
+      resolvePath: vi.fn(({ filePath }) => ({
+        hostPath: filePath,
+        relativePath: filePath,
+        containerPath: filePath,
+      })),
+      remove: vi.fn(async () => {}),
+      rename: vi.fn(async () => {}),
     };
 
     const tool = createSandboxedEditTool({
@@ -105,8 +126,15 @@ line 3`;
     const mockBridge: SandboxFsBridge = {
       readFile: vi.fn(async () => Buffer.from(testContent, "utf-8")),
       writeFile: vi.fn(async () => {}),
-      stat: vi.fn(async () => ({ isFile: () => true, isDirectory: () => false })),
+      stat: vi.fn(async () => ({ type: "file" as const, size: 100, mtimeMs: Date.now() })),
       mkdirp: vi.fn(async () => {}),
+      resolvePath: vi.fn(({ filePath }) => ({
+        hostPath: filePath,
+        relativePath: filePath,
+        containerPath: filePath,
+      })),
+      remove: vi.fn(async () => {}),
+      rename: vi.fn(async () => {}),
     };
 
     const tool = createSandboxedEditTool({
