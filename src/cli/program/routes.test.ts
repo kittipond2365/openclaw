@@ -20,6 +20,11 @@ describe("program routes", () => {
     await expect(route?.run(["node", "openclaw", "sessions", "--store"])).resolves.toBe(false);
   });
 
+  it("matches security route", () => {
+    const route = findRoutedCommand(["security"]);
+    expect(route).not.toBeNull();
+  });
+
   it("does not match unknown routes", () => {
     expect(findRoutedCommand(["definitely-not-real"])).toBeNull();
   });
