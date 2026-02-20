@@ -313,6 +313,145 @@ function createZaiToolStreamWrapper(
   };
 }
 
+// ---------------------------------------------------------------------------
+// Conversation history cache markers
+// ---------------------------------------------------------------------------
+
+type AnthropicContentBlock = {
+  type?: string;
+  text?: string;
+  cache_control?: { type: string };
+  [key: string]: unknown;
+};
+
+type AnthropicPayloadMessage = {
+  role?: string;
+  content?: string | AnthropicContentBlock[];
+  [key: string]: unknown;
+};
+
+const DEFAULT_CONVERSATION_CACHE_TAIL = 30;
+const MIN_STABLE_MESSAGES = 20;
+const MAX_CONVERSATION_CACHE_MARKERS = 3;
+
+/**
+ * Resolve `cacheConversationTail` from extra params.
+ *
+ * - Explicit number → use that value (0 disables)
+ * - `undefined` when `cacheRetention` is set → default to 30
+ * - Non-Anthropic provider → always undefined (disabled)
+ */
+function resolveConversationCacheTail(
+  extraParams: Record<string, unknown> | undefined,
+  provider: string,
+): number | undefined {
+  if (provider !== "anthropic") {
+    return undefined;
+  }
+
+  const explicit = extraParams?.cacheConversationTail;
+  if (typeof explicit === "number") {
+    return explicit;
+  }
+
+  // Auto-enable when cacheRetention is active (any value except "none")
+  const retention = extraParams?.cacheRetention;
+  if (retention && retention !== "none") {
+    return DEFAULT_CONVERSATION_CACHE_TAIL;
+  }
+
+  // Also auto-enable when cacheRetention would default to "short" (i.e. not explicitly set)
+  // resolveCacheRetention() defaults Anthropic to "short", so we mirror that
+  if (retention === undefined) {
+    return DEFAULT_CONVERSATION_CACHE_TAIL;
+  }
+
+  return undefined;
+}
+
+/**
+ * Add up to 3 `cache_control` markers to the stable portion of conversation
+ * messages. The last `tailCount` messages are kept uncached (hot zone) while
+ * the older stable history is divided into equal segments with cache breakpoints.
+ *
+ * @param messages - The Anthropic API messages array (mutated in-place)
+ * @param tailCount - Number of recent messages to leave uncached (default 30)
+ * @param minStable - Minimum stable messages required before placing markers (default 20)
+ * @returns The messages array (same reference, mutated)
+ *
+ * @internal Exported for testing
+ */
+export function addConversationCacheMarkers(
+  messages: AnthropicPayloadMessage[],
+  tailCount: number = DEFAULT_CONVERSATION_CACHE_TAIL,
+  minStable: number = MIN_STABLE_MESSAGES,
+): AnthropicPayloadMessage[] {
+  const stableCutoff = Math.max(0, messages.length - tailCount);
+  if (stableCutoff < minStable) {
+    return messages;
+  }
+
+  const markersToPlace = Math.min(
+    MAX_CONVERSATION_CACHE_MARKERS,
+    Math.floor(stableCutoff / minStable),
+  );
+  if (markersToPlace === 0) {
+    return messages;
+  }
+
+  for (let i = 1; i <= markersToPlace; i++) {
+    const idx = Math.floor((stableCutoff * i) / markersToPlace) - 1;
+    if (idx < 0 || idx >= messages.length) {
+      continue;
+    }
+
+    const msg = messages[idx];
+    if (!msg) {
+      continue;
+    }
+
+    // Normalise string content → content block array so we can attach cache_control
+    if (typeof msg.content === "string") {
+      msg.content = [{ type: "text", text: msg.content }];
+    }
+
+    if (Array.isArray(msg.content) && msg.content.length > 0) {
+      const lastBlock = msg.content[msg.content.length - 1];
+      if (lastBlock && typeof lastBlock === "object") {
+        lastBlock.cache_control = { type: "ephemeral" };
+      }
+    }
+  }
+
+  return messages;
+}
+
+/**
+ * Create a streamFn wrapper that injects conversation history cache markers
+ * into the Anthropic API payload via `onPayload`.
+ */
+function createConversationCacheMarkersWrapper(
+  baseStreamFn: StreamFn | undefined,
+  tailCount: number,
+): StreamFn {
+  const underlying = baseStreamFn ?? streamSimple;
+  return (model, context, options) => {
+    const originalOnPayload = options?.onPayload;
+    return underlying(model, context, {
+      ...options,
+      onPayload: (payload) => {
+        if (payload && typeof payload === "object") {
+          const p = payload as { messages?: AnthropicPayloadMessage[] };
+          if (Array.isArray(p.messages)) {
+            addConversationCacheMarkers(p.messages, tailCount);
+          }
+        }
+        originalOnPayload?.(payload);
+      },
+    });
+  };
+}
+
 /**
  * Apply extra params (like temperature) to an agent's streamFn.
  * Also adds OpenRouter app attribution headers when using the OpenRouter provider.
@@ -366,6 +505,16 @@ export function applyExtraParamsToAgent(
       log.debug(`enabling Z.AI tool_stream for ${provider}/${modelId}`);
       agent.streamFn = createZaiToolStreamWrapper(agent.streamFn, true);
     }
+  }
+
+  // Conversation history caching: place up to 3 cache markers on the stable
+  // portion of message history to avoid re-processing long conversations.
+  const conversationTail = resolveConversationCacheTail(merged, provider);
+  if (typeof conversationTail === "number" && conversationTail !== 0) {
+    log.debug(
+      `enabling conversation cache markers for ${provider}/${modelId} (tail=${conversationTail})`,
+    );
+    agent.streamFn = createConversationCacheMarkersWrapper(agent.streamFn, conversationTail);
   }
 
   // Work around upstream pi-ai hardcoding `store: false` for Responses API.
